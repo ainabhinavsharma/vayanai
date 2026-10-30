@@ -21,12 +21,14 @@ echo   [6] SEND TEST MESSAGE                : Send 1 Sample Message to Your Own 
 echo   [7] RUN ACCOUNT 1 ONLY (ODD)         : Dispatch 46 Candidates from Account 1
 echo   [8] RUN ACCOUNT 2 ONLY (EVEN)        : Dispatch 46 Candidates from Account 2
 echo   [9] RESET FAILED TO PENDING          : Retry Failed Deliveries
+echo   [P] VERIFY PAYMENTS AND UTRS         : Review Candidate UTRs and Approve
 echo   [0] EXIT
 echo.
 echo ========================================================================
 set choice=
-set /p choice=Enter your choice (0-9): 
+set /p choice=Enter your choice (0-9 or P): 
 
+if /i "%choice%"=="P" goto OPTIONP
 if "%choice%"=="1" goto OPTION1
 if "%choice%"=="2" goto OPTION2
 if "%choice%"=="3" goto OPTION3
@@ -126,6 +128,25 @@ goto MENU
 cls
 echo [ACTION] Resetting FAILED candidates back to PENDING...
 python scripts\send_vayanai_whatsapp.py --reset-failed
+echo.
+pause
+goto MENU
+
+:OPTIONP
+cls
+python scripts\check_payments.py --list
+echo.
+echo Options:
+echo   [1] Approve a Candidate by Email or UTR
+echo   [0] Return to Menu
+echo.
+set p_choice=
+set /p p_choice=Enter choice (0 or 1): 
+if "%p_choice%"=="1" (
+    set p_id=
+    set /p p_id=Enter Candidate Email or UTR to Approve: 
+    if not "%p_id%"=="" python scripts\check_payments.py --approve %p_id%
+)
 echo.
 pause
 goto MENU
