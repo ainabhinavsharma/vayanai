@@ -144,11 +144,15 @@ def main():
     time.sleep(3)
 
     # Launch Worker 1 and Worker 2 in side-by-side terminal windows
-    cmd_acc1 = f'start "VayanAI WhatsApp - Account 1 (ODD)" cmd.exe /k "color 0a & python -u {DISPATCH_SCRIPT} --worker account1"'
-    cmd_acc2 = f'start "VayanAI WhatsApp - Account 2 (EVEN)" cmd.exe /k "color 0e & python -u {DISPATCH_SCRIPT} --worker account2"'
+    bat_acc1 = PROJECT_ROOT / "run_worker_acc1.bat"
+    bat_acc2 = PROJECT_ROOT / "run_worker_acc2.bat"
 
-    subprocess.Popen(f"cmd.exe /c \"{cmd_acc1}\"", shell=True)
-    subprocess.Popen(f"cmd.exe /c \"{cmd_acc2}\"", shell=True)
+    try:
+        os.startfile(str(bat_acc1))
+        os.startfile(str(bat_acc2))
+    except Exception:
+        subprocess.Popen(["cmd.exe", "/c", "start", "", str(bat_acc1)], shell=True)
+        subprocess.Popen(["cmd.exe", "/c", "start", "", str(bat_acc2)], shell=True)
 
     print("\n" + "=" * 76)
     print("  [DISPATCH ACTIVE] Both workers are running in parallel!")

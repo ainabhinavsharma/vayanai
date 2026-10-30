@@ -1,4 +1,5 @@
 @echo off
+cd /d "%~dp0"
 setlocal enabledelayedexpansion
 
 title VayanAI Candidate Dispatcher - Dual WhatsApp Engine
@@ -63,17 +64,13 @@ if "%choice%"=="4" (
 
 if "%choice%"=="5" (
     cls
-    echo [ACTION] Starting Account 1 (Odd) worker in current window...
-    python scripts\send_vayanai_whatsapp.py --worker account1
-    pause
+    call run_worker_acc1.bat
     goto MENU
 )
 
 if "%choice%"=="6" (
     cls
-    echo [ACTION] Starting Account 2 (Even) worker in current window...
-    python scripts\send_vayanai_whatsapp.py --worker account2
-    pause
+    call run_worker_acc2.bat
     goto MENU
 )
 
