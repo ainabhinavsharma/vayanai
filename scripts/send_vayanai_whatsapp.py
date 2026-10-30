@@ -68,6 +68,25 @@ def clean_phone_number(raw_phone) -> str:
     return digits
 
 
+def parse_applied_date(raw_date) -> datetime:
+    """Parses application timestamps accurately across ISO and standard date formats."""
+    if not raw_date:
+        return datetime(1970, 1, 1)
+    raw = str(raw_date).strip()
+    if "T" in raw:
+        clean = raw.split(".")[0].replace("Z", "")
+        try:
+            return datetime.fromisoformat(clean)
+        except Exception:
+            pass
+    for fmt in ("%m/%d/%Y %H:%M:%S", "%m/%d/%Y %H:%M", "%d/%m/%Y %H:%M:%S", "%Y-%m-%d %H:%M:%S"):
+        try:
+            return datetime.strptime(raw, fmt)
+        except Exception:
+            pass
+    return datetime(1970, 1, 1)
+
+
 # ---------------------------------------------------------------------------
 # Database & Queue Management
 # ---------------------------------------------------------------------------
@@ -113,22 +132,24 @@ def sync_sources_to_db(force_reseed: bool = False):
             conn.commit()
             print("[*] Cleared existing dispatch queue for re-seeding.")
 
-        # Query candidates starting with the newest applications
+        # Query all active candidates
         query = """
             SELECT id, user_name, user_email, phone, track_name, college_name, applied_at, status
             FROM intern_applications
             WHERE phone IS NOT NULL AND TRIM(phone) != '' AND status != 'rejected'
-            ORDER BY applied_at DESC, id DESC
         """
-        rows = conn.execute(query).fetchall()
+        all_candidates = [dict(r) for r in conn.execute(query).fetchall()]
+
+        # Strictly sort chronologically: Newest applications FIRST
+        all_candidates.sort(key=lambda r: (parse_applied_date(r.get("applied_at")), r.get("id", "")), reverse=True)
 
         eligible_candidates = []
         seen_phones = set()
         seen_emails = set()
 
-        for r in rows:
-            clean_phone = clean_phone_number(r["phone"])
-            clean_email = (r["user_email"] or "").strip().lower()
+        for cand in all_candidates:
+            clean_phone = clean_phone_number(cand["phone"])
+            clean_email = (cand["user_email"] or "").strip().lower()
 
             # Require valid phone number of at least 10 digits
             if not clean_phone or len(clean_phone) < 10:
@@ -139,7 +160,7 @@ def sync_sources_to_db(force_reseed: bool = False):
 
             seen_phones.add(clean_phone)
             seen_emails.add(clean_email)
-            eligible_candidates.append(r)
+            eligible_candidates.append(cand)
 
             if len(eligible_candidates) >= TOTAL_TARGET_CANDIDATES:
                 break
