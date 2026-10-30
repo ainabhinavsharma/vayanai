@@ -191,7 +191,7 @@ export function OfficialOfferLetter({
             </tr>
             <tr style={{ borderBottom: '1px solid #e2e8e5' }}>
               <td style={{ padding: '8px 14px', fontWeight: 600, color: '#4a5550', background: '#fafbfa' }}>Duration</td>
-              <td style={{ padding: '8px 14px', color: '#0e1611' }}>Two (3) months</td>
+              <td style={{ padding: '8px 14px', color: '#0e1611' }}>Three (3) months</td>
             </tr>
             <tr style={{ borderBottom: '1px solid #e2e8e5' }}>
               <td style={{ padding: '8px 14px', fontWeight: 600, color: '#4a5550', background: '#fafbfa' }}>Work Arrangement</td>
