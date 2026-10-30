@@ -4,15 +4,15 @@
 VayanAI — Dual-Account WhatsApp Candidate Enrollment Dispatcher
 ================================================================================
 Purpose:
-  Sends personalized WhatsApp selection notices to the newest 92 candidates
-  from the VayanAI database, informing them to check their status, view/sign
-  their offer letter, and join the official WhatsApp cohort group.
+  Sends personalized WhatsApp selection notices to candidates from the VayanAI
+  database, starting with the newest applications and progressing to the oldest.
 
 Dual-Account Architecture:
   - Account 1 (Odd Serials):  .chrome_session_account1 (46 candidates)
   - Account 2 (Even Serials): .chrome_session_account2 (46 candidates)
   - Anti-Ban Pacing: 18s–35s randomized delay between messages.
   - Circuit Breaker: Pauses worker if 3 consecutive failures occur.
+  - Multi-Run Queue: Automatically skips already sent candidates in subsequent runs.
 ================================================================================
 """
 
@@ -99,6 +99,7 @@ def get_db_connection() -> sqlite3.Connection:
 
 def init_db():
     conn = get_db_connection()
+    # Active queue table
     conn.execute("""
         CREATE TABLE IF NOT EXISTS whatsapp_dispatch (
             serial_no       INTEGER PRIMARY KEY,
@@ -116,6 +117,22 @@ def init_db():
             whatsapp_error  TEXT
         )
     """)
+    # Permanent sent history log (persists across runs and batches)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS whatsapp_sent_log (
+            serial_no       INTEGER PRIMARY KEY AUTOINCREMENT,
+            application_id  TEXT UNIQUE NOT NULL,
+            user_name       TEXT NOT NULL,
+            user_email      TEXT NOT NULL,
+            clean_phone     TEXT NOT NULL,
+            raw_phone       TEXT,
+            track_name      TEXT,
+            college_name    TEXT,
+            applied_at      TEXT,
+            account_group   TEXT NOT NULL,
+            whatsapp_sent_at TEXT NOT NULL
+        )
+    """)
     conn.commit()
     conn.close()
 
@@ -127,76 +144,131 @@ def sync_sources_to_db(force_reseed: bool = False):
     existing_count = conn.execute("SELECT count(*) as count FROM whatsapp_dispatch").fetchone()["count"]
 
     if existing_count == 0 or force_reseed:
-        if force_reseed:
-            conn.execute("DELETE FROM whatsapp_dispatch")
-            conn.commit()
-            print("[*] Cleared existing dispatch queue for re-seeding.")
-
-        # Query all active candidates
-        query = """
-            SELECT id, user_name, user_email, phone, track_name, college_name, applied_at, status
-            FROM intern_applications
-            WHERE phone IS NOT NULL AND TRIM(phone) != '' AND status != 'rejected'
-        """
-        all_candidates = [dict(r) for r in conn.execute(query).fetchall()]
-
-        # Strictly sort chronologically: Newest applications FIRST
-        all_candidates.sort(key=lambda r: (parse_applied_date(r.get("applied_at")), r.get("id", "")), reverse=True)
-
-        eligible_candidates = []
-        seen_phones = set()
-        seen_emails = set()
-
-        for cand in all_candidates:
-            clean_phone = clean_phone_number(cand["phone"])
-            clean_email = (cand["user_email"] or "").strip().lower()
-
-            # Require valid phone number of at least 10 digits
-            if not clean_phone or len(clean_phone) < 10:
-                continue
-
-            if clean_phone in seen_phones or clean_email in seen_emails:
-                continue
-
-            seen_phones.add(clean_phone)
-            seen_emails.add(clean_email)
-            eligible_candidates.append(cand)
-
-            if len(eligible_candidates) >= TOTAL_TARGET_CANDIDATES:
-                break
-
-        serial_no = 1
-        for cand in eligible_candidates:
-            clean_phone = clean_phone_number(cand["phone"])
-            clean_email = (cand["user_email"] or "").strip().lower()
-            name = (cand["user_name"] or "Candidate").strip()
-            track = (cand["track_name"] or "Internship").strip()
-            college = (cand["college_name"] or "").strip()
-            applied_at = cand["applied_at"] or ""
-
-            # Split Odd / Even across the 2 accounts
-            account_group = "account1_odd" if (serial_no % 2 != 0) else "account2_even"
-
-            conn.execute("""
-                INSERT OR REPLACE INTO whatsapp_dispatch
-                (serial_no, application_id, user_name, user_email, clean_phone, raw_phone, track_name, college_name, applied_at, account_group, whatsapp_status)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING')
-            """, (serial_no, cand["id"], name, clean_email, clean_phone, cand["phone"], track, college, applied_at, account_group))
-            serial_no += 1
-
-        conn.commit()
-        total_seeded = serial_no - 1
-        acc1_count = conn.execute("SELECT count(*) as c FROM whatsapp_dispatch WHERE account_group = 'account1_odd'").fetchone()["c"]
-        acc2_count = conn.execute("SELECT count(*) as c FROM whatsapp_dispatch WHERE account_group = 'account2_even'").fetchone()["c"]
-
-        print(f"[OK] Seeding complete: {total_seeded} newest eligible candidates loaded.")
-        print(f"     - Account 1 (Odd Serials) : {acc1_count} candidates")
-        print(f"     - Account 2 (Even Serials): {acc2_count} candidates")
+        load_next_batch(batch_size=TOTAL_TARGET_CANDIDATES)
     else:
-        print(f"[*] Queue table already populated with {existing_count} records. State preserved.")
+        print(f"[*] Queue table currently has {existing_count} records. State preserved.")
 
     conn.close()
     export_queues_csv()
+
+
+def load_next_batch(batch_size: int = TOTAL_TARGET_CANDIDATES):
+    """
+    Loads the next batch of remaining uncontacted candidates, ordered strictly
+    chronologically descending (newest remaining applications first).
+    All previously SENT candidates are permanently preserved in whatsapp_sent_log
+    and excluded from receiving messages again.
+    """
+    init_db()
+    conn = get_db_connection()
+
+    # 1. Sync any existing SENT records in whatsapp_dispatch into whatsapp_sent_log
+    sent_in_dispatch = conn.execute("""
+        SELECT application_id, user_name, user_email, clean_phone, raw_phone, track_name, college_name, applied_at, account_group, whatsapp_sent_at
+        FROM whatsapp_dispatch
+        WHERE whatsapp_status = 'SENT'
+    """).fetchall()
+
+    for r in sent_in_dispatch:
+        now_ts = r["whatsapp_sent_at"] or datetime.now().isoformat()
+        conn.execute("""
+            INSERT OR IGNORE INTO whatsapp_sent_log
+            (application_id, user_name, user_email, clean_phone, raw_phone, track_name, college_name, applied_at, account_group, whatsapp_sent_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (r["application_id"], r["user_name"], r["user_email"], r["clean_phone"], r["raw_phone"], r["track_name"], r["college_name"], r["applied_at"], r["account_group"], now_ts))
+    conn.commit()
+
+    # 2. Get list of already sent identifiers
+    sent_rows = conn.execute("SELECT user_email, clean_phone, application_id FROM whatsapp_sent_log").fetchall()
+    sent_emails = set((r["user_email"] or "").strip().lower() for r in sent_rows if r["user_email"])
+    sent_phones = set((r["clean_phone"] or "").strip() for r in sent_rows if r["clean_phone"])
+    sent_app_ids = set((r["application_id"] or "").strip() for r in sent_rows if r["application_id"])
+
+    # 3. Fetch all active candidates from intern_applications
+    query = """
+        SELECT id, user_name, user_email, phone, track_name, college_name, applied_at, status
+        FROM intern_applications
+        WHERE phone IS NOT NULL AND TRIM(phone) != '' AND status != 'rejected'
+    """
+    all_candidates = [dict(r) for r in conn.execute(query).fetchall()]
+
+    # Sort strictly chronologically: newest remaining FIRST
+    all_candidates.sort(key=lambda r: (parse_applied_date(r.get("applied_at")), r.get("id", "")), reverse=True)
+
+    # 4. Filter for uncontacted
+    eligible_remaining = []
+    seen_phones = set(sent_phones)
+    seen_emails = set(sent_emails)
+
+    for cand in all_candidates:
+        clean_phone = clean_phone_number(cand["phone"])
+        clean_email = (cand["user_email"] or "").strip().lower()
+        cand_id = (cand["id"] or "").strip()
+
+        if cand_id in sent_app_ids:
+            continue
+        if not clean_phone or len(clean_phone) < 10:
+            continue
+        if clean_phone in seen_phones or clean_email in seen_emails:
+            continue
+
+        seen_phones.add(clean_phone)
+        seen_emails.add(clean_email)
+        eligible_remaining.append(cand)
+
+        if len(eligible_remaining) >= batch_size:
+            break
+
+    # 5. Clear current dispatch queue and load the new batch
+    conn.execute("DELETE FROM whatsapp_dispatch")
+    conn.commit()
+
+    serial_no = 1
+    for cand in eligible_remaining:
+        clean_phone = clean_phone_number(cand["phone"])
+        clean_email = (cand["user_email"] or "").strip().lower()
+        name = (cand["user_name"] or "Candidate").strip()
+        track = (cand["track_name"] or "Internship").strip()
+        college = (cand["college_name"] or "").strip()
+        applied_at = cand["applied_at"] or ""
+
+        # Split Odd / Even across the 2 accounts
+        account_group = "account1_odd" if (serial_no % 2 != 0) else "account2_even"
+
+        conn.execute("""
+            INSERT OR REPLACE INTO whatsapp_dispatch
+            (serial_no, application_id, user_name, user_email, clean_phone, raw_phone, track_name, college_name, applied_at, account_group, whatsapp_status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING')
+        """, (serial_no, cand["id"], name, clean_email, clean_phone, cand["phone"], track, college, applied_at, account_group))
+        serial_no += 1
+
+    conn.commit()
+    conn.execute("PRAGMA wal_checkpoint(TRUNCATE);")
+
+    acc1_count = conn.execute("SELECT count(*) as c FROM whatsapp_dispatch WHERE account_group = 'account1_odd'").fetchone()["c"]
+    acc2_count = conn.execute("SELECT count(*) as c FROM whatsapp_dispatch WHERE account_group = 'account2_even'").fetchone()["c"]
+    total_sent_so_far = len(sent_rows)
+    total_apps = len(all_candidates)
+    remaining_uncontacted = max(0, total_apps - total_sent_so_far - len(eligible_remaining))
+
+    conn.close()
+    export_queues_csv()
+
+    print("\n" + "=" * 76)
+    print("  VAYANAI — NEXT BATCH LOADED (NEWEST REMAINING FIRST)")
+    print("=" * 76)
+    print(f"  Successfully Sent in Previous Runs : {total_sent_so_far} candidates (Archived & Excluded)")
+    print(f"  Queued for This Run                : {len(eligible_remaining)} candidates")
+    print(f"    - Account 1 (Odd Serials)        : {acc1_count} candidates")
+    print(f"    - Account 2 (Even Serials)       : {acc2_count} candidates")
+    print(f"  Remaining After This Run           : {remaining_uncontacted} candidates")
+    print("=" * 76)
+
+    if eligible_remaining:
+        print("\nNext 3 candidates to be messaged:")
+        for cand in eligible_remaining[:3]:
+            print(f"  - {cand['user_name']} | {cand['user_email']} | +{clean_phone_number(cand['phone'])} | Applied: {cand['applied_at']}")
+        print()
 
 
 def export_queues_csv():
@@ -240,6 +312,48 @@ def reset_failed_to_pending():
     conn.close()
     print(f"[OK] Reset {count} FAILED records back to PENDING.")
     export_queues_csv()
+
+
+def print_overall_status():
+    init_db()
+    conn = get_db_connection()
+
+    total_candidates = conn.execute("SELECT count(*) as c FROM intern_applications WHERE status != 'rejected'").fetchone()["c"]
+    total_sent_log = conn.execute("SELECT count(*) as c FROM whatsapp_sent_log").fetchone()["c"]
+
+    dispatch_pending = conn.execute("SELECT count(*) as c FROM whatsapp_dispatch WHERE whatsapp_status = 'PENDING'").fetchone()["c"]
+    dispatch_sent = conn.execute("SELECT count(*) as c FROM whatsapp_dispatch WHERE whatsapp_status = 'SENT'").fetchone()["c"]
+    dispatch_failed = conn.execute("SELECT count(*) as c FROM whatsapp_dispatch WHERE whatsapp_status = 'FAILED'").fetchone()["c"]
+
+    sent_emails = set(r[0] for r in conn.execute("SELECT user_email FROM whatsapp_sent_log").fetchall() if r[0])
+    sent_phones = set(r[0] for r in conn.execute("SELECT clean_phone FROM whatsapp_sent_log").fetchall() if r[0])
+
+    all_apps = conn.execute("SELECT phone, user_email FROM intern_applications WHERE status != 'rejected'").fetchall()
+    uncontacted_count = 0
+    seen = set()
+    for a in all_apps:
+        ph = clean_phone_number(a["phone"])
+        em = (a["user_email"] or "").strip().lower()
+        if not ph or len(ph) < 10:
+            continue
+        if ph in sent_phones or em in sent_emails or ph in seen:
+            continue
+        seen.add(ph)
+        uncontacted_count += 1
+
+    conn.close()
+
+    print("\n" + "=" * 76)
+    print("  VAYANAI — WHATSAPP DISPATCH OVERALL PROGRESS STATUS")
+    print("=" * 76)
+    print(f"  Total Eligible Applicants in DB    : {total_candidates}")
+    print(f"  Total Messages Sent So Far         : {total_sent_log} (Logged in permanent record)")
+    print(f"  Current Active Queue               : {dispatch_pending + dispatch_sent + dispatch_failed} candidates")
+    print(f"    - Pending in current queue       : {dispatch_pending}")
+    print(f"    - Sent in current queue          : {dispatch_sent}")
+    print(f"    - Failed in current queue        : {dispatch_failed}")
+    print(f"  Total Uncontacted Candidates Left  : {uncontacted_count}")
+    print("=" * 76 + "\n")
 
 
 # ---------------------------------------------------------------------------
@@ -307,7 +421,6 @@ def send_whatsapp_single(page, cand: dict) -> tuple[bool, str]:
             if page.is_closed():
                 return False, "BROWSER_CLOSED"
 
-            # Check for invalid phone / error dialogs
             dialogs = page.query_selector_all("[role='dialog']")
             starting_chat = False
             for d in dialogs:
@@ -373,7 +486,7 @@ def send_whatsapp_single(page, cand: dict) -> tuple[bool, str]:
 # Account Worker Process
 # ---------------------------------------------------------------------------
 def run_worker(account_group: str, delay_min: float = 18.0, delay_max: float = 35.0, auto_start: bool = True):
-    sync_sources_to_db()
+    init_db()
 
     conn = get_db_connection()
     c = conn.cursor()
@@ -482,11 +595,18 @@ def run_worker(account_group: str, delay_min: float = 18.0, delay_max: float = 3
                     consecutive_wa_failures = 0
                     delivered_count += 1
                     print(f"  [WA SUCCESS] Delivered to {name} (+{phone}) | Total Sent: {delivered_count}/{total}")
+                    now_iso = datetime.now().isoformat()
                     conn.execute("""
                         UPDATE whatsapp_dispatch 
                         SET whatsapp_status = 'SENT', whatsapp_sent_at = ?, whatsapp_error = NULL
                         WHERE serial_no = ?
-                    """, (datetime.now().isoformat(), s_no))
+                    """, (now_iso, s_no))
+                    # Also log to permanent sent history
+                    conn.execute("""
+                        INSERT OR REPLACE INTO whatsapp_sent_log
+                        (application_id, user_name, user_email, clean_phone, raw_phone, track_name, college_name, applied_at, account_group, whatsapp_sent_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (cand["application_id"], name, email, phone, cand.get("raw_phone"), cand.get("track_name"), cand.get("college_name"), cand.get("applied_at"), account_group, now_iso))
                 else:
                     consecutive_wa_failures += 1
                     print(f"  [WA FAILED] Detail: {wa_detail} | Consecutive Failures: {consecutive_wa_failures}/{MAX_CONSECUTIVE_WA_FAILURES}")
@@ -519,7 +639,7 @@ def run_worker(account_group: str, delay_min: float = 18.0, delay_max: float = 3
 
 
 def dry_run():
-    sync_sources_to_db()
+    init_db()
     conn = get_db_connection()
     rows = conn.execute("SELECT * FROM whatsapp_dispatch ORDER BY serial_no ASC").fetchall()
     conn.close()
@@ -601,8 +721,10 @@ def send_test_message(phone: str, account_num: int = 1):
 
 def main():
     parser = argparse.ArgumentParser(description="VayanAI Dual WhatsApp Candidate Dispatcher")
-    parser.add_argument("--init-db", action="store_true", help="Initialize and populate dispatch queue from database")
+    parser.add_argument("--init-db", action="store_true", help="Initialize database tables")
     parser.add_argument("--reseed", action="store_true", help="Force re-seed queue with newest applications")
+    parser.add_argument("--next-batch", action="store_true", help="Load next batch of remaining uncontacted candidates")
+    parser.add_argument("--status", action="store_true", help="Display overall campaign progress and counts")
     parser.add_argument("--dry-run", action="store_true", help="Display queue counts and sample message preview")
     parser.add_argument("--reset-failed", action="store_true", help="Reset FAILED records back to PENDING")
     parser.add_argument("--worker", choices=["account1", "account2"], help="Run dispatch worker for account1 or account2")
@@ -616,6 +738,10 @@ def main():
 
     if args.init_db:
         sync_sources_to_db(force_reseed=args.reseed)
+    elif args.next_batch:
+        load_next_batch()
+    elif args.status:
+        print_overall_status()
     elif args.reset_failed:
         reset_failed_to_pending()
     elif args.dry_run:

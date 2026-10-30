@@ -6,24 +6,26 @@ cls
 echo ========================================================================
 echo        VAYANAI CANDIDATE WHATSAPP DISPATCHER (DUAL ACCOUNT ENGINE)
 echo ========================================================================
-echo   Target Audience : 92 Newest Registered Candidates (46 per Account)
-echo   Pacing Schedule : Continuous 18s-35s randomized human breaks
-echo   Portal Link     : https://vayanai.onrender.com/enroll
-echo   Group Link      : https://chat.whatsapp.com/Kn6o6hMoFfc7rIVx0wgZt3
+echo   Current Campaign : Newest Applications to Oldest (46 per Account)
+echo   Pacing Schedule  : Continuous 18s-35s randomized human breaks
+echo   Portal Link      : https://vayanai.onrender.com/enroll
+echo   Group Link       : https://chat.whatsapp.com/Kn6o6hMoFfc7rIVx0wgZt3
 echo ========================================================================
 echo.
-echo   [1] PREVIEW QUEUE (Dry Run)          : Inspect 46+46 Split and Sample Message
-echo   [2] RE-SEED QUEUE FROM DATABASE      : Pull Fresh 92 Newest Applications
-echo   [3] SEND TEST MESSAGE                : Send 1 Sample Message to Your Own Phone
-echo   [4] LAUNCH DUAL WORKERS (PARALLEL)   : Start Both Account 1 and Account 2
-echo   [5] RUN ACCOUNT 1 ONLY (ODD)         : Dispatch 46 Candidates from Account 1
-echo   [6] RUN ACCOUNT 2 ONLY (EVEN)        : Dispatch 46 Candidates from Account 2
-echo   [7] RESET FAILED TO PENDING          : Retry Failed Deliveries
+echo   [1] LAUNCH DUAL WORKERS (PARALLEL)   : Start Sending Current Queue
+echo   [2] LOAD NEXT BATCH OF REMAINING     : Queue Next 92 Remaining (Newest First)
+echo   [3] LOAD NEXT BATCH AND LAUNCH       : One-Click Load Remaining and Start Both
+echo   [4] PREVIEW CURRENT QUEUE (Dry Run)  : Inspect 46+46 Split and Sample Message
+echo   [5] PROGRESS AND CAMPAIGN STATUS     : See Total Sent vs Remaining Pool
+echo   [6] SEND TEST MESSAGE                : Send 1 Sample Message to Your Own Phone
+echo   [7] RUN ACCOUNT 1 ONLY (ODD)         : Dispatch 46 Candidates from Account 1
+echo   [8] RUN ACCOUNT 2 ONLY (EVEN)        : Dispatch 46 Candidates from Account 2
+echo   [9] RESET FAILED TO PENDING          : Retry Failed Deliveries
 echo   [0] EXIT
 echo.
 echo ========================================================================
 set choice=
-set /p choice=Enter your choice (0-7): 
+set /p choice=Enter your choice (0-9): 
 
 if "%choice%"=="1" goto OPTION1
 if "%choice%"=="2" goto OPTION2
@@ -32,43 +34,17 @@ if "%choice%"=="4" goto OPTION4
 if "%choice%"=="5" goto OPTION5
 if "%choice%"=="6" goto OPTION6
 if "%choice%"=="7" goto OPTION7
+if "%choice%"=="8" goto OPTION8
+if "%choice%"=="9" goto OPTION9
 if "%choice%"=="0" goto OPTION0
 
 echo.
-echo Invalid choice "%choice%". Please enter a number from 0 to 7.
+echo Invalid choice "%choice%". Please enter a number from 0 to 9.
 echo.
 pause
 goto MENU
 
 :OPTION1
-cls
-python scripts\send_vayanai_whatsapp.py --dry-run
-echo.
-pause
-goto MENU
-
-:OPTION2
-cls
-echo [ACTION] Re-seeding queue from database with newest applications...
-python scripts\send_vayanai_whatsapp.py --init-db --reseed
-echo.
-pause
-goto MENU
-
-:OPTION3
-cls
-set test_phone=
-set /p test_phone=Enter personal WhatsApp number (e.g. 9876543210): 
-if "%test_phone%"=="" (
-    echo [ERROR] No phone number provided.
-) else (
-    python scripts\send_vayanai_whatsapp.py --test-to %test_phone% --account 1
-)
-echo.
-pause
-goto MENU
-
-:OPTION4
 cls
 echo ========================================================================
 echo   [ACTION] Launching Account 1 and Account 2 in parallel windows...
@@ -83,17 +59,70 @@ echo.
 pause
 goto MENU
 
+:OPTION2
+cls
+echo ========================================================================
+echo   [ACTION] Loading Next Batch of Remaining Candidates (Newest First)...
+echo ========================================================================
+python scripts\send_vayanai_whatsapp.py --next-batch
+echo.
+pause
+goto MENU
+
+:OPTION3
+cls
+echo ========================================================================
+echo   [ACTION] Loading Next Batch and Launching Dual Workers...
+echo ========================================================================
+python scripts\send_vayanai_whatsapp.py --next-batch
+echo.
+echo   [ACTION] Starting Account 1 and Account 2 workers in parallel...
+start "" "%~dp0run_worker_acc1.bat"
+start "" "%~dp0run_worker_acc2.bat"
+echo.
+echo   [OK] Both worker windows have been started!
+echo.
+pause
+goto MENU
+
+:OPTION4
+cls
+python scripts\send_vayanai_whatsapp.py --dry-run
+echo.
+pause
+goto MENU
+
 :OPTION5
 cls
-call "%~dp0run_worker_acc1.bat"
+python scripts\send_vayanai_whatsapp.py --status
+echo.
+pause
 goto MENU
 
 :OPTION6
 cls
-call "%~dp0run_worker_acc2.bat"
+set test_phone=
+set /p test_phone=Enter personal WhatsApp number (e.g. 9876543210): 
+if "%test_phone%"=="" (
+    echo [ERROR] No phone number provided.
+) else (
+    python scripts\send_vayanai_whatsapp.py --test-to %test_phone% --account 1
+)
+echo.
+pause
 goto MENU
 
 :OPTION7
+cls
+call "%~dp0run_worker_acc1.bat"
+goto MENU
+
+:OPTION8
+cls
+call "%~dp0run_worker_acc2.bat"
+goto MENU
+
+:OPTION9
 cls
 echo [ACTION] Resetting FAILED candidates back to PENDING...
 python scripts\send_vayanai_whatsapp.py --reset-failed
