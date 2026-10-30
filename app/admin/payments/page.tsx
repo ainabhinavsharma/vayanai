@@ -53,6 +53,15 @@ export default function AdminPaymentsPage() {
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [copiedUtr, setCopiedUtr] = useState<string | null>(null);
 
+  // Fast WhatsApp Screenshot Ingestion State
+  const [manualQuery, setManualQuery] = useState('');
+  const [manualSearching, setManualSearching] = useState(false);
+  const [applicantMatches, setApplicantMatches] = useState<any[]>([]);
+  const [selectedApplicant, setSelectedApplicant] = useState<any | null>(null);
+  const [manualUtrInput, setManualUtrInput] = useState('');
+  const [manualRecording, setManualRecording] = useState(false);
+  const [justEnrolledWaUrl, setJustEnrolledWaUrl] = useState<string | null>(null);
+
   // Check saved authentication on mount
   useEffect(() => {
     const savedPin = sessionStorage.getItem('vayanai_admin_auth');
@@ -126,6 +135,88 @@ export default function AdminPaymentsPage() {
     navigator.clipboard.writeText(text);
     setCopiedUtr(id);
     setTimeout(() => setCopiedUtr(null), 2000);
+  };
+
+  const searchApplicantsForManual = async (query: string) => {
+    if (!query.trim()) {
+      setApplicantMatches([]);
+      return;
+    }
+    setManualSearching(true);
+    try {
+      const res = await fetch(`/api/v1/admin/payments?searchAll=true&search=${encodeURIComponent(query.trim())}`);
+      const data = await res.json();
+      if (data.success) {
+        setApplicantMatches(data.data.applicants || []);
+      }
+    } catch {
+      // silent
+    } finally {
+      setManualSearching(false);
+    }
+  };
+
+  const handleRecordManualPayment = async () => {
+    if (!selectedApplicant) return;
+    setManualRecording(true);
+    setJustEnrolledWaUrl(null);
+    try {
+      const res = await fetch('/api/v1/admin/payments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          candidateId: selectedApplicant.id,
+          action: 'record_manual_payment',
+          utrNumber: manualUtrInput.trim() || undefined,
+          autoApprove: true,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        const cand = data.data.candidate;
+        setNotification({
+          type: 'success',
+          message: `✓ Confirmed ${cand.userName}! Payment recorded & batch slot confirmed.`,
+        });
+
+        const cleanPhone = (cand.phone || selectedApplicant.phone || '').replace(/\D/g, '');
+        const phoneWithCode = cleanPhone.startsWith('91') ? cleanPhone : `91${cleanPhone}`;
+        const firstName = cand.userName.split(' ')[0];
+        const waMsg = `🎉 *Batch Slot Confirmed — VayanAI Internship Program*
+
+Dear *${firstName}*,
+
+Congratulations! Your ₹499 refundable caution deposit (UTR: *${cand.utrNumber}*) has been verified and approved by the Admissions Council.
+
+✅ *Your Enrollment Status:* Confirmed & Admitted
+📅 *Batch Commencement:* 2026-11-02
+📄 *Official Receipt #:* ${cand.depositReceipt}
+
+📌 *Download Your Verified Offer Letter:*
+👉 https://vayanai.onrender.com/enroll
+
+Enter your registered email address (*${cand.userEmail}*) to view your confirmed batch slot and download your digitally signed offer letter.
+
+👥 *Official Cohort Community:*
+https://chat.whatsapp.com/Kn6o6hMoFfc7rIVx0wgZt3
+
+Welcome to the team!
+— Admissions Council, VayanAI`;
+
+        setJustEnrolledWaUrl(`https://wa.me/${phoneWithCode}?text=${encodeURIComponent(waMsg)}`);
+        setSelectedApplicant(null);
+        setManualUtrInput('');
+        setManualQuery('');
+        setApplicantMatches([]);
+        await fetchPayments();
+      } else {
+        setNotification({ type: 'error', message: data.error || 'Failed to record payment' });
+      }
+    } catch (err: any) {
+      setNotification({ type: 'error', message: err.message || 'Error recording payment' });
+    } finally {
+      setManualRecording(false);
+    }
   };
 
   const buildWhatsAppConfirmationUrl = (cand: PaymentRecord) => {
@@ -452,6 +543,268 @@ Welcome to the VayanAI Cohort! 🎊
               ₹499 refundable deposit pool
             </div>
           </div>
+        </div>
+
+        {/* ── FAST RECORD WHATSAPP SCREENSHOT / DIRECT PAYMENT ── */}
+        <div
+          style={{
+            background: '#131c16',
+            border: '1px solid rgba(232, 163, 76, 0.4)',
+            borderRadius: '12px',
+            padding: '20px 24px',
+            marginBottom: '28px',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '20px' }}>📱</span>
+              <div>
+                <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#fff8ee' }}>
+                  Fast-Record WhatsApp Screenshot Payment
+                </h2>
+                <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#a0aab0' }}>
+                  Search any candidate by Name, Phone, or Email to instantly verify their ₹499 UPI screenshot and unlock their signed offer letter.
+                </p>
+              </div>
+            </div>
+            <span
+              style={{
+                background: 'rgba(232, 163, 76, 0.15)',
+                color: '#e8a34c',
+                fontSize: '11px',
+                fontWeight: 700,
+                padding: '4px 10px',
+                borderRadius: '6px',
+                border: '1px solid rgba(232, 163, 76, 0.3)',
+              }}
+            >
+              1-Click Instant Enrollment
+            </span>
+          </div>
+
+          {/* Just Enrolled WhatsApp Dispatch Banner */}
+          {justEnrolledWaUrl && (
+            <div
+              style={{
+                background: 'rgba(76, 175, 80, 0.15)',
+                border: '1px solid #4caf50',
+                borderRadius: '8px',
+                padding: '14px 18px',
+                marginBottom: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px',
+              }}
+            >
+              <div style={{ color: '#4caf50', fontSize: '13px', fontWeight: 700 }}>
+                🎉 Candidate successfully enrolled and offer letter signed!
+              </div>
+              <a
+                href={justEnrolledWaUrl}
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  background: '#25D366',
+                  color: '#ffffff',
+                  padding: '8px 16px',
+                  borderRadius: '6px',
+                  fontWeight: 800,
+                  fontSize: '12px',
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                💬 Dispatch WhatsApp Confirmation →
+              </a>
+            </div>
+          )}
+
+          {/* Search Bar */}
+          <div style={{ display: 'flex', gap: '10px', marginBottom: '14px' }}>
+            <input
+              type="text"
+              placeholder="Search candidate by name, phone (e.g. 9876543210), or email from WhatsApp..."
+              value={manualQuery}
+              onChange={(e) => {
+                setManualQuery(e.target.value);
+                searchApplicantsForManual(e.target.value);
+              }}
+              style={{
+                flex: 1,
+                padding: '10px 14px',
+                background: '#0a0f0d',
+                border: '1px solid rgba(255,255,255,0.15)',
+                borderRadius: '8px',
+                color: '#fff8ee',
+                fontSize: '13px',
+              }}
+            />
+            <button
+              onClick={() => searchApplicantsForManual(manualQuery)}
+              disabled={manualSearching}
+              style={{
+                background: '#e8a34c',
+                color: '#0d1410',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '0 20px',
+                fontSize: '13px',
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              {manualSearching ? 'Searching...' : '🔍 Find'}
+            </button>
+          </div>
+
+          {/* Search Results Dropdown/Cards */}
+          {applicantMatches.length > 0 && !selectedApplicant && (
+            <div
+              style={{
+                maxHeight: '220px',
+                overflowY: 'auto',
+                background: '#0a0f0d',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '8px',
+                padding: '8px',
+                marginBottom: '14px',
+              }}
+            >
+              {applicantMatches.map((app) => (
+                <div
+                  key={app.id}
+                  onClick={() => setSelectedApplicant(app)}
+                  style={{
+                    padding: '10px 14px',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    borderBottom: '1px solid rgba(255,255,255,0.05)',
+                    transition: 'background 0.2s',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = '#1a241e')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                >
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: '13px', color: '#fff8ee' }}>
+                      {app.name}{' '}
+                      <span style={{ fontSize: '11px', color: '#a0aab0', fontWeight: 400 }}>
+                        ({app.email} • {app.phone || 'No phone'})
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#889990', marginTop: '2px' }}>
+                      {app.track} • {app.college || 'College N/A'}
+                    </div>
+                  </div>
+                  <button
+                    style={{
+                      background: 'rgba(232, 163, 76, 0.15)',
+                      border: '1px solid #e8a34c',
+                      color: '#e8a34c',
+                      padding: '4px 12px',
+                      borderRadius: '6px',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Select Candidate →
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Selected Applicant Card & UTR Entry */}
+          {selectedApplicant && (
+            <div
+              style={{
+                background: '#1a241e',
+                border: '1px solid rgba(76, 175, 80, 0.4)',
+                borderRadius: '8px',
+                padding: '16px 20px',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                <div>
+                  <span style={{ fontSize: '11px', color: '#4caf50', fontWeight: 800, textTransform: 'uppercase' }}>
+                    SELECTED APPLICANT
+                  </span>
+                  <div style={{ fontSize: '16px', fontWeight: 800, color: '#fff8ee', marginTop: '2px' }}>
+                    {selectedApplicant.name}
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#a0aab0' }}>
+                    Email: <strong>{selectedApplicant.email}</strong> • Phone: <strong>{selectedApplicant.phone || 'N/A'}</strong>
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#889990', marginTop: '2px' }}>
+                    Track: {selectedApplicant.track} • Status: <code>{selectedApplicant.status}</code>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSelectedApplicant(null)}
+                  style={{
+                    background: 'transparent',
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    color: '#a0aab0',
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                    fontSize: '11px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  ✕ Cancel
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                <div style={{ flex: 1, minWidth: '240px' }}>
+                  <label style={{ display: 'block', fontSize: '11px', color: '#c9d6ce', marginBottom: '6px', fontWeight: 600 }}>
+                    12-Digit UPI UTR Reference Number (from WhatsApp Screenshot):
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 439281902847 (or leave blank to auto-create reference)"
+                    value={manualUtrInput}
+                    onChange={(e) => setManualUtrInput(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      background: '#0a0f0d',
+                      border: '1px solid rgba(255,255,255,0.2)',
+                      borderRadius: '6px',
+                      color: '#fff8ee',
+                      fontSize: '13px',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+                <button
+                  onClick={handleRecordManualPayment}
+                  disabled={manualRecording}
+                  style={{
+                    background: '#4caf50',
+                    color: '#0d1410',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '10px 24px',
+                    fontSize: '13px',
+                    fontWeight: 800,
+                    cursor: manualRecording ? 'wait' : 'pointer',
+                    boxShadow: '0 4px 14px rgba(76, 175, 80, 0.4)',
+                  }}
+                >
+                  {manualRecording ? 'Processing & Enrolling…' : '✓ Record Payment & Confirm Enrollment'}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Filter and Search Bar */}

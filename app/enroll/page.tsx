@@ -225,6 +225,7 @@ function EnrollContent() {
           action: 'pay_deposit',
           paymentMethod: 'upi_qr',
           utrNumber: utrInput.trim(),
+          signatureName: signatureInput.trim() || candidate!.name,
         }),
       });
       const data = await res.json();
@@ -234,6 +235,8 @@ function EnrollContent() {
             ? {
                 ...prev,
                 status: 'deposit_pending_verification',
+                signatureName: prev.signatureName || signatureInput.trim() || prev.name,
+                offerAcceptedAt: prev.offerAcceptedAt || new Date().toISOString(),
                 depositReceipt:
                   data.data.payment?.receiptNumber ||
                   `VP-VER-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
@@ -241,7 +244,7 @@ function EnrollContent() {
               }
             : null
         );
-        showToast('⏳ ₹499 Deposit Proof Submitted! Admissions Council verification in progress.');
+        showToast('⏳ ₹499 Deposit Proof (UTR) Submitted! Admissions Council verification in progress.');
       } else {
         showToast(data.error?.message || 'Deposit submission failed. Please try again.');
       }
@@ -1093,25 +1096,61 @@ function EnrollContent() {
                 PDF download unlocks immediately.
               </div>
 
+              {!isSigned && (
+                <div
+                  style={{
+                    background: 'rgba(232, 163, 76, 0.08)',
+                    border: '1px solid rgba(232, 163, 76, 0.25)',
+                    borderRadius: '6px',
+                    padding: '8px 12px',
+                    fontSize: '11px',
+                    color: '#e8a34c',
+                    marginBottom: '14px',
+                  }}
+                >
+                  ℹ️ Submitting your UTR will also confirm your digital offer acceptance as <strong>{candidate.name}</strong>.
+                </div>
+              )}
+
               <button
                 type="submit"
-                disabled={processingPayment || !isSigned}
+                disabled={processingPayment}
                 className="button button-gold"
                 style={{
                   width: '100%',
-                  minHeight: '38px',
-                  fontSize: '12px',
-                  background: isSigned ? '#e8a34c' : '#333',
-                  opacity: isSigned ? 1 : 0.5,
-                  cursor: isSigned ? 'pointer' : 'not-allowed',
+                  minHeight: '44px',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  background: '#e8a34c',
+                  color: '#0d1410',
+                  boxShadow: '0 4px 14px rgba(232, 163, 76, 0.35)',
+                  cursor: processingPayment ? 'wait' : 'pointer',
                 }}
               >
                 {processingPayment
-                  ? 'Submitting Details…'
-                  : isSigned
-                  ? '✓ Submit ₹499 Deposit Proof (UTR)'
-                  : 'Complete Step 1 Digital Signature First'}
+                  ? '⏳ Submitting Deposit Proof…'
+                  : '✓ Submit ₹499 Deposit Proof (UTR)'}
               </button>
+
+              <div style={{ marginTop: '14px', textAlign: 'center' }}>
+                <a
+                  href={`https://wa.me/917983944732?text=${encodeURIComponent(
+                    `Hello Vayanai Admissions, I have completed the ₹499 caution deposit payment for ${candidate.name} (${candidate.email}). Here is my payment proof.`
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '11px',
+                    color: '#889990',
+                    textDecoration: 'underline',
+                  }}
+                >
+                  💬 Paid via UPI &amp; want to send screenshot on WhatsApp? Click here
+                </a>
+              </div>
             </form>
           )}
         </div>

@@ -22,13 +22,17 @@ echo   [7] RUN ACCOUNT 1 ONLY (ODD)         : Dispatch 46 Candidates from Accoun
 echo   [8] RUN ACCOUNT 2 ONLY (EVEN)        : Dispatch 46 Candidates from Account 2
 echo   [9] RESET FAILED TO PENDING          : Retry Failed Deliveries
 echo   [P] VERIFY PAYMENTS AND UTRS         : Review Candidate UTRs and Approve
+echo   [R] RECORD WHATSAPP PAYMENT          : Confirm Candidate from WhatsApp Screenshot
+echo   [S] SYNC LIVE DATA FROM CLOUD        : Pull Real-Time Payments from Render Server
 echo   [0] EXIT
 echo.
 echo ========================================================================
 set choice=
-set /p choice=Enter your choice (0-9 or P): 
+set /p choice=Enter your choice (0-9, P, R, or S): 
 
 if /i "%choice%"=="P" goto OPTIONP
+if /i "%choice%"=="R" goto OPTIONR
+if /i "%choice%"=="S" goto OPTIONS
 if "%choice%"=="1" goto OPTION1
 if "%choice%"=="2" goto OPTION2
 if "%choice%"=="3" goto OPTION3
@@ -41,7 +45,7 @@ if "%choice%"=="9" goto OPTION9
 if "%choice%"=="0" goto OPTION0
 
 echo.
-echo Invalid choice "%choice%". Please enter a number from 0 to 9.
+echo Invalid choice "%choice%". Please select from the menu.
 echo.
 pause
 goto MENU
@@ -103,13 +107,14 @@ goto MENU
 
 :OPTION6
 cls
-set test_phone=
-set /p test_phone=Enter personal WhatsApp number (e.g. 9876543210): 
-if "%test_phone%"=="" (
-    echo [ERROR] No phone number provided.
-) else (
-    python scripts\send_vayanai_whatsapp.py --test-to %test_phone% --account 1
-)
+echo ========================================================================
+echo   [TEST] Send Sample Message to Your Own Phone
+echo ========================================================================
+echo Enter target phone number with 91 country code (e.g. 919876543210):
+set testphone=
+set /p testphone=Phone number: 
+if "%testphone%"=="" goto MENU
+python scripts\send_vayanai_whatsapp.py --test-phone %testphone%
 echo.
 pause
 goto MENU
@@ -147,6 +152,40 @@ if "%p_choice%"=="1" (
     set /p p_id=Enter Candidate Email or UTR to Approve: 
     if not "%p_id%"=="" python scripts\check_payments.py --approve %p_id%
 )
+echo.
+pause
+goto MENU
+
+:OPTIONR
+cls
+echo ========================================================================
+echo   FAST-RECORD WHATSAPP SCREENSHOT PAYMENT
+echo ========================================================================
+echo Enter the candidate's registered Email, Phone (10 digits), or Name:
+set r_id=
+set /p r_id=Candidate Email/Phone/Name: 
+if "%r_id%"=="" goto MENU
+echo.
+echo Enter the 12-digit UTR from the WhatsApp screenshot:
+echo (Or press Enter to auto-generate a verified WA_PROOF reference)
+set r_utr=
+set /p r_utr=UTR Reference (optional): 
+echo.
+if "%r_utr%"=="" (
+    python scripts\check_payments.py --record "%r_id%"
+) else (
+    python scripts\check_payments.py --record "%r_id%" --utr "%r_utr%"
+)
+echo.
+pause
+goto MENU
+
+:OPTIONS
+cls
+echo ========================================================================
+echo   SYNCING REAL-TIME SUBMISSIONS FROM RENDER CLOUD
+echo ========================================================================
+python scripts\check_payments.py --sync
 echo.
 pause
 goto MENU

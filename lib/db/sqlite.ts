@@ -43,6 +43,9 @@ export function getDb(): DatabaseSync {
     // Ensure alumni certificates exist for public verification
     ensureCertificatesSeeded(db);
 
+    // Ensure confirmed payments ledger is seeded into SQLite
+    ensurePaymentsLedgerSeeded(db);
+
     globalForDb.__vayanai_db_initialized__ = true;
   }
 
@@ -1184,4 +1187,84 @@ export function ensureCertificatesSeeded(db: DatabaseSync): void {
     );
   }
 }
+
+export function ensurePaymentsLedgerSeeded(db: DatabaseSync): void {
+  try {
+    const dataDir = process.env.DATA_DIR
+      ? path.resolve(process.env.DATA_DIR)
+      : path.resolve(process.cwd(), 'data');
+    const ledgerPath = path.join(dataDir, 'payments_ledger.json');
+    if (!fs.existsSync(ledgerPath)) return;
+
+    const raw = fs.readFileSync(ledgerPath, 'utf8');
+    const items = JSON.parse(raw);
+    if (!Array.isArray(items)) return;
+
+    const now = new Date().toISOString();
+    for (const item of items) {
+      if (!item.userEmail) continue;
+      const cleanEmail = String(item.userEmail).trim().toLowerCase();
+
+      const app = db.prepare('SELECT id, user_id, user_name, user_email FROM intern_applications WHERE LOWER(user_email) = ?').get(cleanEmail) as any;
+      if (app) {
+        db.prepare(`
+          UPDATE intern_applications
+          SET status = ?,
+              utr_number = COALESCE(?, utr_number),
+              deposit_receipt = COALESCE(?, deposit_receipt),
+              deposit_paid_at = COALESCE(?, deposit_paid_at, ?),
+              signature_name = COALESCE(?, signature_name, ?),
+              offer_accepted_at = COALESCE(?, offer_accepted_at, ?),
+              offer_letter_id = COALESCE(?, offer_letter_id),
+              batch_start_date = COALESCE(?, batch_start_date, '2026-11-02'),
+              updated_at = ?
+          WHERE id = ?
+        `).run(
+          item.status || 'enrolled',
+          item.utrNumber || null,
+          item.receiptNumber || null,
+          item.depositPaidAt || null,
+          now,
+          item.signatureName || null,
+          app.user_name,
+          item.offerAcceptedAt || null,
+          now,
+          item.offerLetterId || null,
+          item.batchStartDate || null,
+          now,
+          app.id
+        );
+
+        if (item.utrNumber) {
+          const payExists = db.prepare('SELECT id FROM payments WHERE LOWER(user_email) = ? OR transaction_ref = ?').get(cleanEmail, item.utrNumber);
+          if (!payExists) {
+            db.prepare(`
+              INSERT OR REPLACE INTO payments (
+                id, user_id, user_email, user_name, product_type, amount_inr,
+                currency, payment_status, payment_method, transaction_ref,
+                receipt_number, created_at
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `).run(
+              item.paymentId || `pay-ledger-${app.id}`,
+              app.user_id,
+              app.user_email,
+              app.user_name,
+              'security_deposit',
+              item.amountINR || 499,
+              'INR',
+              item.paymentStatus || 'completed',
+              item.paymentMethod || 'upi_qr',
+              item.utrNumber,
+              item.receiptNumber || `VP-VER-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+              item.depositPaidAt || item.createdAt || now
+            );
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.error('Error seeding payments ledger:', e);
+  }
+}
+
 

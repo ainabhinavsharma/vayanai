@@ -131,7 +131,18 @@ export async function POST(req: NextRequest) {
 
     if (action === 'pay_deposit') {
       const method = paymentMethod || 'upi_qr';
-      const { processInternDepositByEmail } = await import('@/lib/db/intern-repo');
+      const { processInternDepositByEmail, acceptOfferByEmail } = await import('@/lib/db/intern-repo');
+
+      // Auto-accept digital signature if candidate paid before signing Step 1
+      if (!application.signatureName || application.status === 'applied' || application.status === 'invited') {
+        const legalName = (signatureName && String(signatureName).trim()) || application.userName;
+        try {
+          acceptOfferByEmail(cleanEmail, legalName);
+        } catch (sigErr) {
+          console.warn('Auto signature notice:', sigErr);
+        }
+      }
+
       const payment = processInternDepositByEmail(cleanEmail, method, utrNumber);
       const updated = getInternApplicationByEmail(cleanEmail)!;
 
