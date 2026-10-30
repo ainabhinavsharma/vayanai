@@ -1,0 +1,42 @@
+# ====================================================================
+# VAYANAI CPANEL APACHE CGI-BIN & NEXT.JS ENGINE CONFIGURATION
+# ====================================================================
+
+Options +ExecCGI -MultiViews
+AddHandler cgi-script .cgi .py
+
+# Ensure correct MIME types for modern web assets
+AddType text/css .css
+AddType application/javascript .js
+AddType font/woff2 .woff2
+AddType font/woff .woff
+AddType image/svg+xml .svg
+
+RewriteEngine On
+RewriteBase /
+
+# 1. Custom Error Documents
+ErrorDocument 500 "Internal Server Error. Please inspect error_log or contact administrator."
+
+# 2. Direct mapping for public assets (fonts/, images/)
+RewriteCond %{DOCUMENT_ROOT}/public/$1 -f
+RewriteRule ^(.*)$ public/$1 [L]
+
+# 3. Direct access ONLY to physical static files (css, js, images, fonts, php, ico)
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^ - [L]
+
+# 4. Direct mapping ONLY for Next.js public static assets
+RewriteCond %{DOCUMENT_ROOT}/.next/static/$1 -f
+RewriteRule ^_next/static/(.*)$ .next/static/$1 [L]
+
+# Block direct access to server internals, sensitive files, and data directories
+RewriteRule ^_next/(server|BUILD_ID|.*manifest.*) - [F,L]
+RewriteRule ^\.next - [F,L]
+RewriteRule ^data/ - [F,L]
+
+# 5. Do not rewrite direct requests to cgi-bin
+RewriteRule ^cgi-bin/ - [L]
+
+# 6. Route all dynamic pages, API requests, and unresolved assets through cgi-bin/app.cgi
+RewriteRule ^(.*)$ cgi-bin/app.cgi/$1 [L,QSA]

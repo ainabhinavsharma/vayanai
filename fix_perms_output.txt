@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Vayanai Server Diagnostics & Auto-Fix</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace; background: #0d1410; color: #f4ede0; padding: 24px; line-height: 1.6; max-width: 900px; margin: 0 auto; }
+    h2 { color: #e8a34c; border-bottom: 1px solid rgba(232,163,76,0.3); padding-bottom: 8px; }
+    .box { background: #131c16; border: 1px solid rgba(232,163,76,0.3); border-radius: 8px; padding: 18px; margin: 16px 0; }
+    .ok { color: #4ade80; font-weight: bold; }
+    .warn { color: #fbbf24; font-weight: bold; }
+    .err { color: #f87171; font-weight: bold; }
+    .banner { padding: 12px 16px; border-radius: 6px; margin-bottom: 16px; }
+    .banner.ok { background: rgba(74,222,128,0.15); border: 1px solid #4ade80; }
+    .banner.err { background: rgba(248,113,113,0.15); border: 1px solid #f87171; }
+    .banner.warn { background: rgba(251,191,36,0.15); border: 1px solid #fbbf24; }
+    pre { background: #090d0b; border: 1px solid rgba(255,255,255,0.08); padding: 12px; border-radius: 6px; overflow-x: auto; font-size: 13px; color: #c9d6ce; }
+    a { color: #e8a34c; }
+    .btn { display: inline-block; background: #e8a34c; color: #0d1410; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold; margin-right: 12px; }
+    .btn-secondary { background: #26382b; color: #e8a34c; border: 1px solid #e8a34c; }
+    .btn-action { background: #38a169; color: #fff; }
+  </style>
+</head>
+<body>
+  <h2>🔍 Vayanai Server Diagnostics & Auto-Permission Fixer</h2>
+  
+  
+    <div class="box" style="border-color:#38a169;">
+    <h3>⚡ 1-Click Server Unzip Available</h3>
+    <p>Found <code>cpanel-vayanai-deployment.zip</code> in your web directory. Click below to automatically extract and apply the latest build cleanly:</p>
+    <a href="fix-perms.php?extract=1" class="btn btn-action">Extract & Overwrite Latest Build Now</a>
+  </div>
+  
+  <div class="box">
+    <h3>1. File Permissions & Auto-Fix</h3>
+    <p><strong>cgi-bin/app.cgi:</strong> <span class='ok'>Found</span> &mdash; <span class='ok'>✓ Perms: 0755 (OK)</span></p><p><strong>data/ directory:</strong> <span class='ok'>Found</span> &mdash; <span class='ok'>Writable</span></p><p><strong>data/vayanai.db:</strong> <span class='ok'>Found</span> &mdash; <span class='ok'>Perms: 0666 (SQLite DB ready)</span></p><p><strong>.htaccess:</strong> <span class='ok'>Found</span></p>  </div>
+
+  <div class="box">
+    <h3>2. CSS Stylesheets & Static Assets</h3>
+    <p><strong>Primary CSS (b48c2b8b2ce1051c.css):</strong> <span class='ok'>✓ Present (88,631 bytes)</span></p><p><strong>Legacy Hash Compatibility (6c37a3e33f51c431.css):</strong> <span class='ok'>✓ Synced</span></p><p><strong>Fonts Stylesheet (/fonts/fonts.css):</strong> <span class='ok'>✓ Present</span></p>  </div>
+
+  <div class="box">
+    <h3>3. Static Next.js Pre-Rendered Pages</h3>
+    <p>✓ <strong>Homepage (/):</strong> <span class='ok'>Pre-rendered HTML exists (11,446 bytes)</span></p><p>✓ <strong>Intern Portal (/portal):</strong> <span class='ok'>Pre-rendered HTML exists (26,247 bytes)</span></p><p>✓ <strong>Virtual Assessment Room (/intern/assessment):</strong> <span class='ok'>Pre-rendered HTML exists (6,886 bytes)</span></p><p>✓ <strong>Offer Letter Page (/intern/offer):</strong> <span class='ok'>Pre-rendered HTML exists (6,923 bytes)</span></p><p>✓ <strong>Sign In Page (/auth/signin):</strong> <span class='ok'>Pre-rendered HTML exists (8,397 bytes)</span></p><p>✓ <strong>Sign Up / Apply Page (/auth/signup):</strong> <span class='ok'>Pre-rendered HTML exists (6,847 bytes)</span></p><p>✓ <strong>Public Certificate Verification (/verify):</strong> <span class='ok'>Pre-rendered HTML exists (9,825 bytes)</span></p>  </div>
+
+  <div class="box">
+    <h3>4. Direct CGI Health API Test</h3>
+    <pre>Status: 200 OK
+Content-Type: application/json; charset=utf-8
+
+{&quot;success&quot;: true, &quot;data&quot;: {&quot;status&quot;: &quot;healthy&quot;, &quot;version&quot;: &quot;1.0.0&quot;, &quot;service&quot;: &quot;Vayanai Platform&quot;, &quot;runtime&quot;: &quot;Python 3.9 CGI Native Engine&quot;, &quot;database&quot;: &quot;SQLite 3 Connected&quot;}}</pre><p class='ok'>✓ CGI Engine is working flawlessly!</p>  </div>
+
+  <p>
+    <a href="/" class="btn">Go to Homepage</a>
+    <a href="/portal" class="btn btn-secondary">Go to Portal</a>
+    <a href="/intern/assessment?token=test-candidate-token-2026" class="btn btn-secondary">Test Assessment Room</a>
+  </p>
+</body>
+</html>

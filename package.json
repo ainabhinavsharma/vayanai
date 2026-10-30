@@ -1,0 +1,40 @@
+{
+  "name": "vayanai",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "scripts": {
+    "dev": "node --max-old-space-size=4096 ./node_modules/next/dist/bin/next dev",
+    "dev:all": "node scripts/dev-all.mjs",
+    "build": "next build",
+    "start": "next start",
+    "package:static": "node scripts/package-cpanel-static.mjs",
+    "package:cpanel": "node scripts/package-cpanel.mjs",
+    "lint": "next lint",
+    "test": "vitest run",
+    "test:smoke": "tsx tests/email-smoke.ts",
+    "test:python": "pytest backend/botskill/tests -v",
+    "test:all": "vitest run && pytest backend/botskill/tests -v"
+  },
+  "dependencies": {
+    "@types/qrcode": "^1.5.6",
+    "next": "^15.2.0",
+    "nodemailer": "^10.2.1",
+    "qrcode": "^1.5.4",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0",
+    "@types/nodemailer": "^8.0.2",
+    "@types/react": "^19.0.8",
+    "@types/react-dom": "^19.0.3",
+    "tsx": "^4.23.15",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.5"
+  }
+}

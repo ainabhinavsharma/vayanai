@@ -1,0 +1,145 @@
+INTERNSHIP OFFER LETTER
+Issued under the internal internship engagement policy of VAYANAI
+Reference No.
+{offer_ref_no}
+Date of Issue
+{date}
+Intern Name
+{name}
+Email Address
+{email}
+Subject: Offer of Internship — {Role/Domain}
+Dear {name},
+On behalf of VAYANAI (“VAYANAI,” “the Company,” “we,” or “us”), we're glad to offer you an internship as a {Role/Domain} Intern (“you” or “the Intern”). You stood out through the selection process, and we're looking forward to having you contribute in a genuine, project-driven technology environment.
+Think of this as a working, learning-first role. You'll build up your capability, work through the assigned learning activities, and move into live project work as you're ready for it. To be clear: this is not a paid course, it is not a certificate-issuing program, and it is not a guarantee of future employment — please don't understand it as any of those things.
+This letter, together with any policy documents it refers to, sets out the complete terms of your internship. Please read it carefully in full before signing, and if anything is unclear, raise it with Human Resources before you accept.
+1.  YOUR INTERNSHIP AT A GLANCE
+Internship Period
+{start_date} to {end_date}
+Duration
+Two (3) months
+Work Arrangement
+Fully remote
+Expected Participation
+Approximately 10 hours per week
+Attendance for Stipend Eligibility
+Minimum 75% per week
+Fixed Internship Stipend
+₹5,000, subject to the eligibility conditions in Section 6
+Internship Commitment Deposit
+₹499, fully refundable subject to Section 5
+Stipend Disbursement Timeline
+Within 3 months of successful completion, per Section 6.4
+2.  VAYANAI AND DBERT
+VAYANAI currently operates under incubation with DBERT. Under this arrangement, DBERT extends shared support to VAYANAI across training, talent development, technical development, and HR/internship operations.
+Your internship agreement is with VAYANAI alone. Depending on your role and the stage of your internship, elements of your training, HR communication, mentorship, or operational support may be delivered through DBERT's infrastructure. This is meant to give you a structured path from guided learning to practical project contribution, and it does not create any separate contractual relationship between you and DBERT.
+3.  WHAT WE EXPECT FROM YOU
+We look for interns who treat this opportunity with seriousness and intent. You're not expected to arrive with complete mastery of the subject — what we do expect is a willingness to learn, to ask questions, to accept feedback constructively, to meet the commitments you agree to, and to make a genuine effort on the work assigned to you.
+4.  LEARNING, DEVELOPMENT AND PROJECT WORK
+Your internship combines structured learning with practical project work. The exact sequence can vary a little by role, but the intended progression looks like this:
+1. Learn
+Orientation and structured technical learning.
+2. Practise
+Assignments, exercises, and reviewed feedback.
+3. Contribute
+Approved work on VAYANAI's own projects, or another assigned live project.
+4. Complete
+Final review, documentation, and exit formalities.
+4.1  Training and Development Support
+Training and development activities may be delivered through DBERT's learning infrastructure, including the Launchpad pathway where it applies to your role. These activities are designed to prepare you for practical contribution, and may cover software development fundamentals, Git/GitHub, AI and automation concepts, APIs, local AI/LLM workflows, and other role-relevant skills.
+VAYANAI sponsors the training and development resources used for this internship pathway.
+You are not required to purchase any course, certification, or resource to obtain or continue this internship, and no one is authorised to ask you to.
+4.2  Project Allocation
+Access to live projects is granted based on your readiness, project requirements, security considerations, and the judgement of your assigned mentor or project supervisor. You may begin with guided tasks before you're given access to a live repository, and access to any particular repository or product is never guaranteed.
+Where you're granted access to a live repository or project, you must work strictly within the access controls and review process set up for that project.
+4.3  What Counts as a Project Contribution
+For the purpose of the fixed stipend described in Section 6, a qualifying live-repository contribution means a meaningful technical contribution to an assigned project that has been reviewed and formally accepted by your designated mentor or project supervisor. This includes:
+an accepted or merged feature or pull request;
+an approved bug fix, or a meaningful and working test contribution;
+an approved improvement to technical or project documentation; or
+another substantive contribution accepted in writing by your project supervisor.
+A commit or pull request is not, by itself, a qualifying contribution merely because it was submitted. It has to be relevant, usable in the project, and formally accepted by the project team.
+4.4  Attendance and Participation
+Expected participation is approximately 10 hours per week. To stay eligible for the stipend, you need to maintain at least 75% attendance in each week of the applicable stipend-eligible period. Attendance is tracked through the systems or process communicated to you during onboarding.
+If a genuine academic, medical, or personal circumstance affects your participation, let HR or your mentor know as early as reasonably possible. Unexplained or repeated absence may affect your project access, stipend eligibility, and continuation on the internship.
+5.  INTERNSHIP COMMITMENT DEPOSIT
+Confirming an intern into this pathway creates a real cost for VAYANAI — onboarding, mentor time, tooling, and training resources are all committed from that point forward. To confirm that a selected intern is making a genuine commitment to the opportunity, VAYANAI collects a refundable Internship Commitment Deposit of ₹499 (“the Deposit”) at the time of confirmation.
+The ₹499 Deposit is a refundable commitment deposit only.
+It is not a training fee, course fee, placement fee, or any form of payment for obtaining an internship or employment, and VAYANAI does not charge candidates for the right to work.
+5.1  How the Deposit Works
+The Deposit is collected only once you formally confirm the internship and the sponsored internship pathway is activated in your name.
+The Deposit is held separately from any training or program cost. VAYANAI sponsors all training and development resources used on the internship pathway, at no additional cost to you.
+The Deposit becomes refundable once you've successfully completed your applicable internship commitment and the required exit formalities. Refunds are processed within thirty (30) calendar days of completion being confirmed.
+If you voluntarily discontinue the internship, stop participating without communication, or resign before completing the Minimum Commitment Period defined in Section 5.2, the Deposit will ordinarily not be refunded.
+A genuine medical, academic, or personal emergency will be reviewed by HR on its individual facts. Where VAYANAI ends the internship for reasons unrelated to your misconduct or material non-compliance with this letter, the Deposit will ordinarily be refunded in full.
+5.2  Minimum Commitment and Resignation
+The Minimum Commitment Period for this internship is forty five (45) calendar days from your date of commencement. You remain free to leave the internship at any time; however, leaving before the Minimum Commitment Period is completed will ordinarily make the Deposit non-refundable, for the reasons set out in Section 5.1.
+If you wish to resign after the Minimum Commitment Period, you're expected to give at least seven (7) calendar days' written notice to HR and to complete the handover and access-closure steps communicated to you. HR may, at its discretion, accept a shorter notice period in appropriate circumstances.
+6.  THE ₹5,000 FIXED INTERNSHIP STIPEND
+The fixed internship stipend of ₹5,000 (“the Stipend”) is earned through verified participation and contribution. It is not a joining payment, a signing bonus, or an amount owed to you simply because this offer has been accepted.
+Condition
+What this means
+Weekly Attendance
+At least 75% attendance maintained in each week of the applicable stipend-eligible period.
+Live Contribution
+At least one qualifying contribution to an assigned live repository or project, reviewed and accepted (see Section 4.3).
+Completion
+The applicable internship period and all required exit formalities completed in full.
+Conduct & Compliance
+Confidentiality, data-security, project, and professional-conduct requirements under this letter followed throughout.
+6.4  Disbursement Timeline
+Once your attendance, contribution, and completion have been verified, the Stipend will be disbursed within 3 months of the successful completion of your internship, via the payment method and process communicated by HR. This verification period allows VAYANAI to confirm attendance records, review the acceptance of your project contribution, and complete exit formalities before disbursement.
+7.  YOUR RESPONSIBILITIES
+Learning.  Complete assigned training, exercises, assessments, and preparation activities within the agreed timelines.
+Project Work.  Complete assigned tasks with care, ask for clarification when you need it, and submit work only through approved channels.
+Communication.  Maintain reasonable, responsive communication with your mentor, project supervisor, and HR. Don't disengage without notice.
+Security.  Protect your passwords and access credentials, use only approved tools and repositories, keep your device reasonably secure, and report suspected security incidents promptly.
+Confidentiality.  Do not share confidential code, documents, credentials, screenshots, customer information, or internal discussions outside approved channels (see Section 8).
+Responsible AI Use.  Use AI tools only where expressly permitted. Never enter confidential or proprietary information into unapproved external AI services, and review all AI-assisted output before submission.
+Professional Conduct.  Treat colleagues and other participants with respect at all times. See Section 9 (Zero-Tolerance Policy).
+8.  CONFIDENTIALITY AND NON-DISCLOSURE
+In the course of your internship, you may have access to information that is confidential or proprietary to VAYANAI, DBERT, a client, a partner, or another intern or employee (“Confidential Information”). Confidential Information includes, without limitation, source code, technical designs, architecture, product roadmaps, business plans, pricing, customer and user data, internal communications, credentials and access tokens, and any material marked or reasonably understood to be confidential.
+You will use Confidential Information solely to perform your assigned work, and for no other purpose.
+You will not copy, publish, disclose, forward, screenshot, or otherwise share Confidential Information with any person or platform outside VAYANAI's approved channels, including personal social media, public code repositories, forums, or external AI tools.
+This obligation of confidentiality survives the end of your internship for a period of three (3) years, and indefinitely for information that qualifies as a trade secret under applicable law.
+This obligation does not apply to information that is or becomes publicly available through no fault of yours, or that you're required to disclose under a valid legal or regulatory order — provided you notify HR in writing before making any such disclosure, to the extent you're legally permitted to do so.
+By signing this letter, you acknowledge and agree to these confidentiality and non-disclosure obligations as a binding condition of your internship.
+9.  ZERO-TOLERANCE POLICY
+VAYANAI maintains a zero-tolerance approach to conduct that compromises the safety, integrity, or fairness of our workplace, whether in person or online. The following are treated as serious misconduct and may result in immediate termination of your internship, forfeiture of the Deposit, and, where warranted, further legal or regulatory action:
+harassment, sexual harassment, bullying, or intimidation of any colleague, mentor, intern, or third party;
+discrimination on the basis of gender, caste, religion, disability, sexual orientation, or any other protected characteristic;
+fraud, falsification of records, plagiarism, or misrepresentation of your work, attendance, or contributions;
+unauthorised access to, or misuse of, systems, data, or credentials beyond your assigned scope;
+sharing or leaking Confidential Information in breach of Section 8; and
+any other conduct that VAYANAI reasonably determines to be a serious breach of professional or ethical standards.
+VAYANAI is committed to providing a workplace free of sexual harassment, consistent with the Sexual Harassment of Women at Workplace (Prevention, Prohibition and Redressal) Act, 2013. If you experience or witness any form of harassment, you may raise it confidentially with HR or through the Internal Committee, and it will be addressed under VAYANAI's applicable policy.
+10.  OWNERSHIP OF INTERNSHIP WORK
+All work you create specifically for VAYANAI or an assigned project during your internship — including code, documentation, designs, datasets, and other deliverables — is a work made for VAYANAI, and will belong exclusively to VAYANAI or the relevant project owner, as applicable, unless a different arrangement is agreed with you in writing in advance. You assign to VAYANAI all intellectual property rights in such work to the extent they do not already vest in VAYANAI by operation of law. You must not publish, reuse, or repurpose confidential project material — including in a personal portfolio, resume attachment, or public repository — without VAYANAI's prior written permission.
+11.  DATA PROTECTION AND PRIVACY
+VAYANAI collects and processes your personal data (including contact details, attendance records, and performance information) solely to administer this internship, in accordance with applicable data protection law, including the Digital Personal Data Protection Act, 2023. Your data will not be sold or shared with third parties outside VAYANAI and DBERT except where necessary to administer the internship, or where required by law.
+12.  CERTIFICATE AND LETTER OF RECOMMENDATION
+An internship completion certificate may be issued following successful completion of the internship and all required clearances. A Letter of Recommendation may be provided based on your performance, conduct, and organisational policy. Neither document is issued automatically merely because this offer was accepted.
+13.  EQUIPMENT AND EXPENSES
+This is a remote internship. You're expected to arrange your own suitable computer and reliable internet connection, unless VAYANAI confirms otherwise to you in writing. Personal expenses you incur are not reimbursable unless specifically pre-approved by HR in writing.
+14.  NATURE OF THE INTERNSHIP
+This engagement is an internship for learning and project exposure. It does not create an employer–employee relationship, and does not entitle you to the benefits ordinarily associated with employment. It does not guarantee permanent employment, placement, or a future role with VAYANAI, DBERT, or any other organisation. Any future opportunity, if offered, will be considered separately, on its own merits, based on business requirements and your performance during this internship.
+15.  GRIEVANCE REDRESSAL, GOVERNING LAW AND DISPUTE RESOLUTION
+If you have a concern about any aspect of your internship, raise it first with your mentor or project supervisor, and escalate to HR in writing if it remains unresolved. VAYANAI will make a genuine effort to address any concern promptly and fairly.
+This letter is governed by the laws of India. Any dispute arising out of or in connection with this letter that cannot be resolved through good-faith discussion will be subject to the exclusive jurisdiction of the courts at Ghaziabad, India.
+16.  GENERAL
+Entire agreement.  This letter, together with any policy referenced in it, constitutes the entire agreement between you and VAYANAI regarding this internship, and supersedes any prior discussion or understanding on the subject.
+Amendment.  VAYANAI may update the policies referenced in this letter from time to time; any material change affecting your core terms will be communicated to you in writing.
+Severability.  If any provision of this letter is found unenforceable, the remaining provisions will continue in full force and effect.
+No waiver.  VAYANAI's decision not to act on a breach of this letter on one occasion does not waive its right to act on any future breach.
+17.  ACCEPTANCE
+Please sign below to confirm that you have read and understood this offer in full, and that you accept this internship with a genuine intention to participate, learn, and contribute in accordance with its terms.
+Intern Name
+{name}
+Role / Domain
+{Role/Domain}
+Start Date
+{start_date}
+Accept Offer Letter by Responding to the email as I accept the Offer
+For VAYANAI
+Manpreet Kaur
+HR Head, VAYANAI
