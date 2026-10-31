@@ -95,7 +95,15 @@ goto MENU
 cls
 python scripts\send_vayanai_whatsapp.py --dry-run
 echo.
-pause
+echo ========================================================================
+echo   Ready to send these 92 messages across Account 1 and Account 2?
+echo   - Type [1] or [Y] and press Enter to LAUNCH DUAL WORKERS NOW
+echo   - Press [Enter] to return to the main menu
+echo ========================================================================
+set send_now=
+set /p send_now=Enter choice (1/Y to Send, Enter for Menu): 
+if /i "%send_now%"=="1" goto OPTION1
+if /i "%send_now%"=="Y" goto OPTION1
 goto MENU
 
 :OPTION5
