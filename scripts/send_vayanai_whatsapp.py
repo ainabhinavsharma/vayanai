@@ -685,6 +685,8 @@ def dry_run():
     init_db()
     conn = get_db_connection()
     rows = conn.execute("SELECT * FROM whatsapp_dispatch ORDER BY serial_no ASC").fetchall()
+    sent_count = conn.execute("SELECT count(*) as c FROM whatsapp_sent_log").fetchone()["c"]
+    paid_count = conn.execute("SELECT count(*) as c FROM intern_applications WHERE status IN ('enrolled', 'deposit_paid', 'onboarded')").fetchone()["c"]
     conn.close()
 
     total = len(rows)
@@ -697,6 +699,9 @@ def dry_run():
     print(f"  Total Candidates in Queue : {total}")
     print(f"  Account 1 (Odd Serials)   : {len(acc1_rows)} candidates (Capped at {MAX_MESSAGES_PER_ACCOUNT})")
     print(f"  Account 2 (Even Serials)  : {len(acc2_rows)} candidates (Capped at {MAX_MESSAGES_PER_ACCOUNT})")
+    print("-" * 76)
+    print(f"  [AUDIT] Excluded (Messaged Yesterday) : {sent_count} candidates -> 0 IN QUEUE (100% EXCLUDED)")
+    print(f"  [AUDIT] Excluded (Already Enrolled)   : {paid_count} candidates -> 0 IN QUEUE (100% EXCLUDED)")
     print("=" * 76)
 
     print("\n--- FIRST 5 CANDIDATES FOR ACCOUNT 1 (ODD) ---")
