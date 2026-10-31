@@ -40,6 +40,7 @@ if sys.platform == "win32":
 SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent
 DB_PATH = PROJECT_ROOT / "data" / "vayanai.db"
+LEDGER_PATH = PROJECT_ROOT / "data" / "payments_ledger.json"
 
 # Default session directories from existing authenticated Chrome profiles
 AIVARA_DIR = Path(r"C:\Users\user\Desktop\aivara\aivara")
@@ -178,35 +179,77 @@ def load_next_batch(batch_size: int = TOTAL_TARGET_CANDIDATES):
         """, (r["application_id"], r["user_name"], r["user_email"], r["clean_phone"], r["raw_phone"], r["track_name"], r["college_name"], r["applied_at"], r["account_group"], now_ts))
     conn.commit()
 
-    # 2. Get list of already sent identifiers
+    # 2. Get list of already sent identifiers (candidates who received message yesterday or in prior runs)
     sent_rows = conn.execute("SELECT user_email, clean_phone, application_id FROM whatsapp_sent_log").fetchall()
     sent_emails = set((r["user_email"] or "").strip().lower() for r in sent_rows if r["user_email"])
     sent_phones = set((r["clean_phone"] or "").strip() for r in sent_rows if r["clean_phone"])
     sent_app_ids = set((r["application_id"] or "").strip() for r in sent_rows if r["application_id"])
 
-    # 3. Fetch all active candidates from intern_applications
+    # 3. Get list of already PAID or ENROLLED candidates (must NEVER receive initial invite)
+    paid_rows = conn.execute("""
+        SELECT id, user_email, phone 
+        FROM intern_applications 
+        WHERE status IN ('enrolled', 'deposit_paid', 'onboarded', 'deposit_pending_verification')
+           OR (utr_number IS NOT NULL AND TRIM(utr_number) != '')
+           OR (deposit_receipt IS NOT NULL AND TRIM(deposit_receipt) != '')
+    """).fetchall()
+    paid_emails = set((r["user_email"] or "").strip().lower() for r in paid_rows if r["user_email"])
+    paid_phones = set(clean_phone_number(r["phone"]) for r in paid_rows if r["phone"])
+    paid_ids = set((r["id"] or "").strip() for r in paid_rows if r["id"])
+
+    # Also check payments table
+    payments_rows = conn.execute("SELECT user_email FROM payments").fetchall()
+    for pr in payments_rows:
+        if pr["user_email"]:
+            paid_emails.add(pr["user_email"].strip().lower())
+
+    # Also check payments_ledger.json if present
+    if LEDGER_PATH.exists():
+        try:
+            with open(LEDGER_PATH, "r", encoding="utf-8") as f:
+                ledger_items = json.load(f)
+                if isinstance(ledger_items, list):
+                    for item in ledger_items:
+                        if item.get("userEmail"):
+                            paid_emails.add(item["userEmail"].strip().lower())
+                        if item.get("phone"):
+                            p = clean_phone_number(item["phone"])
+                            if p:
+                                paid_phones.add(p)
+        except Exception:
+            pass
+
+    # 4. Fetch all active candidates from intern_applications
     query = """
         SELECT id, user_name, user_email, phone, track_name, college_name, applied_at, status
         FROM intern_applications
-        WHERE phone IS NOT NULL AND TRIM(phone) != '' AND status != 'rejected'
+        WHERE phone IS NOT NULL AND TRIM(phone) != '' 
+          AND status NOT IN ('rejected', 'enrolled', 'deposit_paid', 'onboarded', 'deposit_pending_verification')
+          AND (utr_number IS NULL OR TRIM(utr_number) = '')
     """
     all_candidates = [dict(r) for r in conn.execute(query).fetchall()]
 
     # Sort strictly chronologically: newest remaining FIRST
     all_candidates.sort(key=lambda r: (parse_applied_date(r.get("applied_at")), r.get("id", "")), reverse=True)
 
-    # 4. Filter for uncontacted
+    # 5. Filter for uncontacted and unpaid
     eligible_remaining = []
-    seen_phones = set(sent_phones)
-    seen_emails = set(sent_emails)
+    seen_phones = set(sent_phones) | paid_phones
+    seen_emails = set(sent_emails) | paid_emails
 
     for cand in all_candidates:
         clean_phone = clean_phone_number(cand["phone"])
         clean_email = (cand["user_email"] or "").strip().lower()
         cand_id = (cand["id"] or "").strip()
 
-        if cand_id in sent_app_ids:
+        # Exclude if sent yesterday/previously
+        if cand_id in sent_app_ids or clean_phone in sent_phones or clean_email in sent_emails:
             continue
+
+        # Exclude if already paid/enrolled
+        if cand_id in paid_ids or clean_phone in paid_phones or clean_email in paid_emails:
+            continue
+
         if not clean_phone or len(clean_phone) < 10:
             continue
         if clean_phone in seen_phones or clean_email in seen_emails:
