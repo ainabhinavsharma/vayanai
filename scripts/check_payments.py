@@ -31,7 +31,8 @@ if sys.platform == "win32":
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DB_PATH = PROJECT_ROOT / "data" / "vayanai.db"
 LEDGER_PATH = PROJECT_ROOT / "data" / "payments_ledger.json"
-RENDER_PAYMENTS_URL = "https://vayanai.onrender.com/api/v1/admin/payments"
+RENDER_BASE_URL = "https://vayanai.onrender.com"
+RENDER_PAYMENTS_URL = f"{RENDER_BASE_URL}/api/v1/admin/payments"
 
 
 def get_db():
@@ -315,6 +316,23 @@ def approve_candidate(identifier: str):
         "paymentStatus": "completed",
         "createdAt": now
     })
+
+    # Sync approval to Render production
+    try:
+        payload = json.dumps({
+            "candidateId": row["id"],
+            "action": "approve"
+        }).encode("utf-8")
+        req = urllib.request.Request(
+            f"{RENDER_BASE_URL}/api/v1/admin/payments",
+            data=payload,
+            headers={"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"}
+        )
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            print(f"[✓] Synced approval to Render server: {data.get('data', {}).get('message')}")
+    except Exception as e:
+        print(f"[!] Warning: Could not sync approval to Render: {e}")
 
     print("\n" + "=" * 78)
     print(f"  [SUCCESS] Candidate Verified & Enrolled!")
