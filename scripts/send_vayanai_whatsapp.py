@@ -237,8 +237,8 @@ def load_next_batch(batch_size: int = TOTAL_TARGET_CANDIDATES):
     # Sort strictly chronologically: newest remaining FIRST
     all_candidates.sort(key=lambda r: (parse_applied_date(r.get("applied_at")), r.get("id", "")), reverse=True)
 
-    # 5. Filter for uncontacted and unpaid
-    eligible_remaining = []
+    # 5. Filter for all uncontacted and unpaid candidates (ordered newest first)
+    all_uncontacted = []
     seen_phones = set(sent_phones) | paid_phones
     seen_phones_10 = set(sent_phones_10) | paid_phones_10
     seen_emails = set(sent_emails) | paid_emails
@@ -266,12 +266,30 @@ def load_next_batch(batch_size: int = TOTAL_TARGET_CANDIDATES):
         if p10:
             seen_phones_10.add(p10)
         seen_emails.add(clean_email)
-        eligible_remaining.append(cand)
+        all_uncontacted.append(cand)
 
-        if len(eligible_remaining) >= batch_size:
-            break
+    # Export the entire clean uncontacted pool (newest first) to data/
+    uncontacted_pool_csv = PROJECT_ROOT / "data" / "vayanai_uncontacted_pool_newest_first.csv"
+    pool_headers = ["rank_newest_first", "candidate_name", "registered_email", "phone", "track", "college", "applied_at", "status"]
+    with open(uncontacted_pool_csv, "w", newline="", encoding="utf-8-sig") as pf:
+        pw = csv.DictWriter(pf, fieldnames=pool_headers)
+        pw.writeheader()
+        for idx, c_item in enumerate(all_uncontacted, 1):
+            pw.writerow({
+                "rank_newest_first": idx,
+                "candidate_name": c_item.get("user_name", ""),
+                "registered_email": c_item.get("user_email", ""),
+                "phone": clean_phone_number(c_item.get("phone", "")),
+                "track": c_item.get("track_name", ""),
+                "college": c_item.get("college_name", ""),
+                "applied_at": c_item.get("applied_at", ""),
+                "status": "UNCONTACTED"
+            })
 
-    # 5. Clear current dispatch queue and load the new batch
+    # Top batch_size (92) for active dispatch queue
+    eligible_remaining = all_uncontacted[:batch_size]
+
+    # 6. Clear current dispatch queue and load the new batch
     conn.execute("DELETE FROM whatsapp_dispatch")
     conn.commit()
 
@@ -329,6 +347,7 @@ def export_queues_csv():
     conn.close()
 
     master_csv = SCRIPT_DIR / "vayanai_whatsapp_master.csv"
+    data_master_csv = PROJECT_ROOT / "data" / "vayanai_whatsapp_master.csv"
     acc1_csv = SCRIPT_DIR / "vayanai_whatsapp_acc1.csv"
     acc2_csv = SCRIPT_DIR / "vayanai_whatsapp_acc2.csv"
 
@@ -338,17 +357,20 @@ def export_queues_csv():
     ]
 
     with open(master_csv, "w", newline="", encoding="utf-8-sig") as fm, \
+         open(data_master_csv, "w", newline="", encoding="utf-8-sig") as fdm, \
          open(acc1_csv, "w", newline="", encoding="utf-8-sig") as f1, \
          open(acc2_csv, "w", newline="", encoding="utf-8-sig") as f2:
 
         wm = csv.DictWriter(fm, fieldnames=headers)
+        wdm = csv.DictWriter(fdm, fieldnames=headers)
         w1 = csv.DictWriter(f1, fieldnames=headers)
         w2 = csv.DictWriter(f2, fieldnames=headers)
 
-        wm.writeheader(); w1.writeheader(); w2.writeheader()
+        wm.writeheader(); wdm.writeheader(); w1.writeheader(); w2.writeheader()
 
         for r in rows:
             wm.writerow(r)
+            wdm.writerow(r)
             if r["account_group"] == "account1_odd":
                 w1.writerow(r)
             else:

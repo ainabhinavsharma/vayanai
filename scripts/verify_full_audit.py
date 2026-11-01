@@ -73,11 +73,11 @@ print(f"  - Overlaps with Yesterday's Sent Log : {len(overlap_sent)}")
 print(f"  - Overlaps with Paid/Enrolled Interns: {len(overlap_paid)}")
 print("=" * 80)
 
-print("\n--- 11 EXCLUDED ENROLLED CANDIDATES ---")
+print(f"\n--- {len(ledger)} EXCLUDED ENROLLED CANDIDATES ---")
 for i, item in enumerate(ledger, 1):
     print(f"  {i:2d}. {item['userName']:<24} | {item['userEmail']:<30} | {item.get('phone', 'N/A')}")
 
-print("\n--- FIRST 5 OF 50 EXCLUDED YESTERDAY SENT ---")
+print(f"\n--- FIRST 5 OF {len(sent_records)} EXCLUDED SENT CANDIDATES ---")
 for i, r in enumerate(sent_records[:5], 1):
     print(f"  {i:2d}. {r['user_name']:<24} | {r['user_email']:<30} | +{r['clean_phone']}")
 print(f"  ... and {len(sent_records)-5} more (all permanently logged in whatsapp_sent_log)")
