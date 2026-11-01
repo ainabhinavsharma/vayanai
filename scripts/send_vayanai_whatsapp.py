@@ -636,11 +636,11 @@ def run_worker(account_group: str, delay_min: float = 18.0, delay_max: float = 3
                     break
                 time.sleep(1)
 
-            if logged_in or auto_start:
+            if logged_in:
                 print(f"[OK] Account {acc_num} WhatsApp session is active! Auto-starting in 3 seconds...")
                 time.sleep(3)
             else:
-                input(f"\n>>> Verify Account {acc_num} is logged into WhatsApp Web, then press [ENTER] to start: ")
+                input(f"\n>>> Verify Account {acc_num} is logged into WhatsApp Web (scan QR code in Chrome if needed), then press [ENTER] to start: ")
 
             total = len(candidates)
             for idx, cand in enumerate(candidates, 1):
@@ -692,6 +692,10 @@ def run_worker(account_group: str, delay_min: float = 18.0, delay_max: float = 3
 
                 conn.commit()
                 conn.close()
+
+                if "BROWSER_CLOSED" in wa_detail:
+                    print(f"\n[ALERT] Chrome browser for Account {acc_num} was closed! Halting worker to preserve remaining queue in PENDING status.")
+                    break
 
                 if consecutive_wa_failures >= MAX_CONSECUTIVE_WA_FAILURES:
                     print(f"\n[ALERT] Reached {MAX_CONSECUTIVE_WA_FAILURES} consecutive WhatsApp failures! Pausing worker for inspection.")
