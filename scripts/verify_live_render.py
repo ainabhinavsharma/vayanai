@@ -39,7 +39,7 @@ for i, item in enumerate(ledger, 1):
 all_ok = all(r[5] for r in results)
 print("\n" + "=" * 76)
 if all_ok:
-    print("ALL 16 CANDIDATES ARE 100% VERIFIED LIVE AS ENROLLED ON PRODUCTION!")
+    print(f"ALL {len(results)} CANDIDATES ARE 100% VERIFIED LIVE AS ENROLLED ON PRODUCTION!")
 else:
     pending_deploy = [r for r in results if not r[5]]
     print(f"{len(pending_deploy)} candidate(s) awaiting Render deploy sync:")
