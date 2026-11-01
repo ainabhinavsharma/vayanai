@@ -382,16 +382,17 @@
     "phone": "9943053488",
     "collegeName": "PSG Institute of Technology and Applied Research",
     "trackName": "Machine Learning (ML)",
-    "status": "deposit_pending_verification",
+    "status": "enrolled",
     "utrNumber": "667138671306",
     "receiptNumber": "VP-VER-2026-4590",
-    "depositPaidAt": "2026-11-01T16:38:15.516Z",
+    "depositPaidAt": "2026-11-01T22:23:09.037437",
     "signatureName": "Pranav Vijayakumar",
     "offerAcceptedAt": "2026-11-01T14:58:09.461Z",
     "offerLetterId": "VY-2026-OPS-5309",
     "batchStartDate": "2026-11-02",
     "amountINR": 499,
-    "paymentStatus": "pending_verification"
+    "paymentStatus": "completed",
+    "createdAt": "2026-11-01T22:23:09.037437"
   },
   {
     "applicationId": "app-1793196976680-bd398a",
