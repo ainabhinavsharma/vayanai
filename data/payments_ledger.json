@@ -24,7 +24,7 @@
     "userName": "A OMESHWAR REDDY",
     "userEmail": "aomeshwarr@gmail.com",
     "phone": "8639704486",
-    "collegeName": "J B Institute of Engineering and Technology ",
+    "collegeName": "JBIET",
     "trackName": "Data Analyst",
     "status": "enrolled",
     "utrNumber": "036980217765",
@@ -56,7 +56,7 @@
     "batchStartDate": "2026-11-02",
     "paymentId": "pay-email-1793348336461",
     "amountINR": 499,
-    "paymentStatus": "completed",
+    "paymentStatus": "pending_verification",
     "createdAt": "2026-10-30T08:18:56.461Z"
   },
   {
@@ -218,5 +218,43 @@
     "amountINR": 499,
     "paymentStatus": "completed",
     "createdAt": "2026-10-31T16:25:08.515462"
+  },
+  {
+    "applicationId": "app-1793196976711-f3b4ab",
+    "userName": "kundan kumhar",
+    "userEmail": "kundankumhar966@gmail.com",
+    "phone": "6377222671",
+    "collegeName": "Mahatma Ghandhi P.G. college shrimadhopur",
+    "trackName": "Full Stack Development",
+    "status": "enrolled",
+    "utrNumber": "301790892491_mvxobmah",
+    "receiptNumber": "VP-VER-2026-4770",
+    "depositPaidAt": "2026-11-01T16:10:37.110658",
+    "signatureName": "Kundan kumhar",
+    "offerAcceptedAt": "2026-11-01T09:47:43.438Z",
+    "offerLetterId": "VY-2026-FS-2990",
+    "batchStartDate": "2026-11-02",
+    "amountINR": 499,
+    "paymentStatus": "completed",
+    "createdAt": "2026-11-01T16:10:37.110658"
+  },
+  {
+    "applicationId": "app-1793196976711-79780d",
+    "userName": "Pranay kurekar",
+    "userEmail": "pranayvk21@gmail.com",
+    "phone": "7057140343",
+    "collegeName": "Jhulelal institute of technology",
+    "trackName": "Data Analyst",
+    "status": "enrolled",
+    "utrNumber": "662653658030",
+    "receiptNumber": "VP-VER-2026-5857",
+    "depositPaidAt": "2026-11-01T16:10:42.737170",
+    "signatureName": "Pranay vilas kurekar",
+    "offerAcceptedAt": "2026-11-01T10:08:12.179Z",
+    "offerLetterId": "VY-2026-DA-6386",
+    "batchStartDate": "2026-11-02",
+    "amountINR": 499,
+    "paymentStatus": "completed",
+    "createdAt": "2026-11-01T16:10:42.737170"
   }
 ]

@@ -219,6 +219,11 @@ def load_next_batch(batch_size: int = TOTAL_TARGET_CANDIDATES):
         except Exception:
             pass
 
+    sent_phones_10 = set(p[-10:] for p in sent_phones if len(p) >= 10)
+    paid_phones_10 = set(p[-10:] for p in paid_phones if len(p) >= 10)
+    manual_blacklist_phones = {"7306902513", "9321995648", "8457013679", "8467013679"}
+    paid_phones_10.update(manual_blacklist_phones)
+
     # 4. Fetch all active candidates from intern_applications
     query = """
         SELECT id, user_name, user_email, phone, track_name, college_name, applied_at, status
@@ -235,27 +240,31 @@ def load_next_batch(batch_size: int = TOTAL_TARGET_CANDIDATES):
     # 5. Filter for uncontacted and unpaid
     eligible_remaining = []
     seen_phones = set(sent_phones) | paid_phones
+    seen_phones_10 = set(sent_phones_10) | paid_phones_10
     seen_emails = set(sent_emails) | paid_emails
 
     for cand in all_candidates:
         clean_phone = clean_phone_number(cand["phone"])
         clean_email = (cand["user_email"] or "").strip().lower()
         cand_id = (cand["id"] or "").strip()
+        p10 = clean_phone[-10:] if len(clean_phone) >= 10 else ""
 
         # Exclude if sent yesterday/previously
-        if cand_id in sent_app_ids or clean_phone in sent_phones or clean_email in sent_emails:
+        if cand_id in sent_app_ids or clean_phone in sent_phones or (p10 and p10 in sent_phones_10) or clean_email in sent_emails:
             continue
 
         # Exclude if already paid/enrolled
-        if cand_id in paid_ids or clean_phone in paid_phones or clean_email in paid_emails:
+        if cand_id in paid_ids or clean_phone in paid_phones or (p10 and p10 in paid_phones_10) or clean_email in paid_emails:
             continue
 
         if not clean_phone or len(clean_phone) < 10:
             continue
-        if clean_phone in seen_phones or clean_email in seen_emails:
+        if clean_phone in seen_phones or (p10 and p10 in seen_phones_10) or clean_email in seen_emails:
             continue
 
         seen_phones.add(clean_phone)
+        if p10:
+            seen_phones_10.add(p10)
         seen_emails.add(clean_email)
         eligible_remaining.append(cand)
 
