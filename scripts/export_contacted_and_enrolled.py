@@ -60,6 +60,8 @@ def main():
     enrolled_by_email = {}
     enrolled_by_phone = {}
     for item in ledger:
+        if item.get("status") not in ("enrolled", "deposit_paid", "onboarded"):
+            continue
         em = (item.get("userEmail") or "").strip().lower()
         ph10 = "".join(filter(str.isdigit, str(item.get("phone", ""))))[-10:]
         if em:
@@ -81,6 +83,8 @@ def main():
 
     # First, insert all enrolled interns
     for item in ledger:
+        if item.get("status") not in ("enrolled", "deposit_paid", "onboarded"):
+            continue
         em = (item.get("userEmail") or "").strip().lower()
         ph = clean_phone(item.get("phone", ""))
         ph10 = ph[-10:] if len(ph) >= 10 else ""

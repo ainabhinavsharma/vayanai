@@ -27,8 +27,6 @@ db_rows = c.execute("""
            offer_accepted_at, offer_letter_id, batch_start_date, updated_at
     FROM intern_applications
     WHERE status IN ('enrolled', 'deposit_paid', 'onboarded')
-       OR (utr_number IS NOT NULL AND TRIM(utr_number) != '')
-       OR (deposit_receipt IS NOT NULL AND TRIM(deposit_receipt) != '')
 """).fetchall()
 
 print(f"Total confirmed in intern_applications: {len(db_rows)}")
@@ -87,8 +85,11 @@ fields = [
     "deposit_timestamp"
 ]
 
+# Filter strictly confirmed/enrolled items
+enrolled_items = [item for item in ledger if item.get("status") in ("enrolled", "deposit_paid", "onboarded")]
+
 csv_rows = []
-for idx, item in enumerate(ledger, 1):
+for idx, item in enumerate(enrolled_items, 1):
     csv_rows.append({
         "serial_no": idx,
         "candidate_name": item.get("userName", ""),

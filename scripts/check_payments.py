@@ -104,7 +104,14 @@ def list_payments(status_filter=None):
     print(f"{'#':<3} | {'Name':<22} | {'Email':<26} | {'UTR Reference':<16} | {'Status':<15} | {'Signed By'}")
     print("-" * 105)
     for idx, r in enumerate(rows, 1):
-        status_display = "⏳ PENDING" if r["status"] == "deposit_pending_verification" else "✓ ENROLLED"
+        if r["status"] == "deposit_pending_verification":
+            status_display = "⏳ PENDING"
+        elif r["status"] in ("enrolled", "onboarded", "deposit_paid"):
+            status_display = "✓ ENROLLED"
+        elif r["status"] == "offer_accepted":
+            status_display = "❌ REJECTED"
+        else:
+            status_display = r["status"]
         signed = r["signature_name"] or "Not signed"
         utr = r["utr_number"] or "N/A"
         print(f"{idx:<3} | {r['user_name'][:22]:<22} | {r['user_email'][:26]:<26} | {utr:<16} | {status_display:<15} | {signed}")
@@ -319,6 +326,85 @@ def approve_candidate(identifier: str):
     print("=" * 78 + "\n")
 
 
+def reject_candidate(identifier: str, reason: str = "Deposit UTR verification failed: Payment not found in bank statement."):
+    conn = get_db()
+    c = conn.cursor()
+
+    row = c.execute(
+        """
+        SELECT id, user_name, user_email, phone, college_name, track_name,
+               status, utr_number, deposit_receipt, offer_letter_id, batch_start_date, signature_name
+        FROM intern_applications 
+        WHERE id = ? OR LOWER(user_email) = ? OR utr_number = ?
+        """,
+        (identifier, identifier.strip().lower(), identifier.strip())
+    ).fetchone()
+
+    if not row:
+        print(f"[ERROR] No candidate found matching: {identifier}")
+        conn.close()
+        return
+
+    now = datetime.now().isoformat()
+
+    # 1. Update local database
+    c.execute("""
+        UPDATE intern_applications
+        SET status = 'offer_accepted',
+            feedback_note = ?,
+            updated_at = ?
+        WHERE id = ?
+    """, (reason, now, row["id"]))
+
+    if row["deposit_receipt"]:
+        c.execute("""
+            UPDATE payments
+            SET payment_status = 'failed'
+            WHERE receipt_number = ?
+        """, (row["deposit_receipt"],))
+
+    conn.commit()
+    conn.execute("PRAGMA wal_checkpoint(TRUNCATE);")
+    conn.close()
+
+    # 2. Update Render production live server
+    try:
+        payload = json.dumps({
+            "candidateId": row["id"],
+            "action": "reject",
+            "reason": reason
+        }).encode("utf-8")
+        req = urllib.request.Request(
+            f"{RENDER_BASE_URL}/api/v1/admin/payments",
+            data=payload,
+            headers={"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"}
+        )
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            print(f"[✓] Synced rejection to Render server: {data.get('data', {}).get('message')}")
+    except Exception as e:
+        print(f"[!] Warning: Could not sync rejection to Render: {e}")
+
+    # 3. Clean from payments_ledger.json
+    try:
+        if LEDGER_PATH.exists():
+            with open(LEDGER_PATH, "r", encoding="utf-8") as f:
+                ledger = json.load(f)
+            cleaned = [item for item in ledger if item.get("userEmail", "").strip().lower() != row["user_email"].strip().lower()]
+            with open(LEDGER_PATH, "w", encoding="utf-8") as f:
+                json.dump(cleaned, f, indent=2)
+    except Exception as e:
+        print(f"[!] Warning: Could not update ledger: {e}")
+
+    print("\n" + "=" * 78)
+    print(f"  [SUCCESS] Deposit Rejected & Slot Released!")
+    print(f"  Name      : {row['user_name']}")
+    print(f"  Email     : {row['user_email']}")
+    print(f"  Status    : offer_accepted (Deposit Rejected)")
+    print(f"  Reason    : {reason}")
+    print("=" * 78 + "\n")
+
+
 def sync_from_render():
     print(f"[*] Fetching live submissions from {RENDER_PAYMENTS_URL}...")
     try:
@@ -362,24 +448,36 @@ def sync_from_render():
                 r["updatedAt"] or datetime.now().isoformat(), email
             ))
 
-            save_to_ledger({
-                "applicationId": r["id"],
-                "userName": r["name"],
-                "userEmail": r["email"],
-                "phone": r["phone"],
-                "collegeName": r["college"],
-                "trackName": r["track"],
-                "status": r["status"],
-                "utrNumber": utr or "N/A",
-                "receiptNumber": receipt or "N/A",
-                "depositPaidAt": r["depositPaidAt"],
-                "signatureName": r["signatureName"],
-                "offerAcceptedAt": r["offerAcceptedAt"],
-                "offerLetterId": r["offerLetterId"],
-                "batchStartDate": r["batchStartDate"],
-                "amountINR": r["amountINR"],
-                "paymentStatus": r["paymentStatus"]
-            })
+            if r["status"] in ("enrolled", "deposit_pending_verification"):
+                save_to_ledger({
+                    "applicationId": r["id"],
+                    "userName": r["name"],
+                    "userEmail": r["email"],
+                    "phone": r["phone"],
+                    "collegeName": r["college"],
+                    "trackName": r["track"],
+                    "status": r["status"],
+                    "utrNumber": utr or "N/A",
+                    "receiptNumber": receipt or "N/A",
+                    "depositPaidAt": r["depositPaidAt"],
+                    "signatureName": r["signatureName"],
+                    "offerAcceptedAt": r["offerAcceptedAt"],
+                    "offerLetterId": r["offerLetterId"],
+                    "batchStartDate": r["batchStartDate"],
+                    "amountINR": r["amountINR"],
+                    "paymentStatus": r["paymentStatus"]
+                })
+            else:
+                # If rejected or not enrolled, remove from ledger
+                try:
+                    if LEDGER_PATH.exists():
+                        with open(LEDGER_PATH, "r", encoding="utf-8") as lf:
+                            ldata = json.load(lf)
+                        cleaned_ldata = [x for x in ldata if x.get("userEmail", "").strip().lower() != email]
+                        with open(LEDGER_PATH, "w", encoding="utf-8") as lf:
+                            json.dump(cleaned_ldata, lf, indent=2)
+                except Exception:
+                    pass
             synced_count += 1
 
         conn.commit()
@@ -398,6 +496,8 @@ def main():
     parser.add_argument("--list", action="store_true", help="List all candidate payments and UTRs")
     parser.add_argument("--pending", action="store_true", help="List only pending verification submissions")
     parser.add_argument("--approve", type=str, help="Approve and enroll candidate by Email, UTR, or ID")
+    parser.add_argument("--reject", type=str, help="Reject candidate deposit by Email, UTR, or ID")
+    parser.add_argument("--reason", type=str, default="Deposit UTR verification failed: Payment not found in bank statement.", help="Rejection reason")
     parser.add_argument("--record", type=str, help="Record WhatsApp screenshot payment for candidate by Email, Phone, or Name")
     parser.add_argument("--utr", type=str, help="12-digit UTR reference number (used with --record)")
     parser.add_argument("--sync", action="store_true", help="Sync real-time payment submissions from Render cloud server")
@@ -410,6 +510,8 @@ def main():
         record_manual_payment(args.record, args.utr)
     elif args.approve:
         approve_candidate(args.approve)
+    elif args.reject:
+        reject_candidate(args.reject, args.reason)
     elif args.pending:
         list_payments(status_filter="deposit_pending_verification")
     else:
