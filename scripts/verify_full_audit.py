@@ -33,7 +33,7 @@ for r in c.execute("SELECT * FROM intern_applications WHERE status IN ('enrolled
     if r["id"]:
         paid_app_ids.add(r["id"].strip())
 
-blacklist_phones = {"7306902513", "9321995648", "8457013679", "8467013679"}
+blacklist_phones = {"7306902513", "9321995648", "8457013679", "8467013679", "9415177333"}
 paid_phones_10.update(blacklist_phones)
 
 # 3. Audit Active Dispatch Queue
