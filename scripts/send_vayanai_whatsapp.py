@@ -221,7 +221,7 @@ def load_next_batch(batch_size: int = TOTAL_TARGET_CANDIDATES):
 
     sent_phones_10 = set(p[-10:] for p in sent_phones if len(p) >= 10)
     paid_phones_10 = set(p[-10:] for p in paid_phones if len(p) >= 10)
-    manual_blacklist_phones = {"7306902513", "9321995648", "8457013679", "8467013679", "9415177333"}
+    manual_blacklist_phones = {"7306902513", "9321995648", "8457013679", "8467013679", "9415177333", "7990611904"}
     paid_phones_10.update(manual_blacklist_phones)
 
     # 4. Fetch all active candidates from intern_applications
