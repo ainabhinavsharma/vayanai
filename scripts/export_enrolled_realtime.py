@@ -106,22 +106,22 @@ for idx, item in enumerate(ledger, 1):
         "deposit_timestamp": item.get("depositPaidAt", item.get("createdAt", ""))
     })
 
-# Export to both Desktop and Workspace
-desktop_csv = Path("C:/Users/user/Desktop/vayanai_enrolled_interns.csv")
-workspace_csv = Path("scripts/enrolled_candidates_confirmation.csv")
-
-with open(desktop_csv, "w", newline="", encoding="utf-8-sig") as f:
-    w = csv.DictWriter(f, fieldnames=fields)
-    w.writeheader()
-    w.writerows(csv_rows)
+# Export strictly inside workspace root
+workspace_csv = Path("data/vayanai_enrolled_interns.csv")
+scripts_csv = Path("scripts/enrolled_candidates_confirmation.csv")
 
 with open(workspace_csv, "w", newline="", encoding="utf-8-sig") as f:
     w = csv.DictWriter(f, fieldnames=fields)
     w.writeheader()
     w.writerows(csv_rows)
 
+with open(scripts_csv, "w", newline="", encoding="utf-8-sig") as f:
+    w = csv.DictWriter(f, fieldnames=fields)
+    w.writeheader()
+    w.writerows(csv_rows)
+
 print(f"Exported CSV with {len(csv_rows)} rows to:")
-print(f"  1. {desktop_csv}")
-print(f"  2. {workspace_csv}")
+print(f"  1. {workspace_csv}")
+print(f"  2. {scripts_csv}")
 
 conn.close()
