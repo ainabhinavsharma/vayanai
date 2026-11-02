@@ -220,6 +220,27 @@ def record_manual_payment(identifier: str, utr: str = None):
         "createdAt": now
     })
 
+    # Sync manual payment to Render production server
+    try:
+        payload = json.dumps({
+            "candidateId": row["id"],
+            "email": row["user_email"],
+            "action": "record_manual_payment",
+            "utrNumber": final_utr,
+            "signatureName": row["user_name"],
+            "autoApprove": True
+        }).encode("utf-8")
+        req = urllib.request.Request(
+            RENDER_PAYMENTS_URL,
+            data=payload,
+            headers={"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"}
+        )
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            print(f"[✓] Synced manual payment to Render server: {data.get('data', {}).get('message')}")
+    except Exception as e:
+        print(f"[!] Warning: Could not sync manual payment to Render: {e}")
+
     # Build WhatsApp URL
     clean_phone = "".join(filter(str.isdigit, str(row["phone"] or "")))
     if not clean_phone.startswith("91") and len(clean_phone) == 10:
