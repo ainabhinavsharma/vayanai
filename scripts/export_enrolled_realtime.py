@@ -85,11 +85,28 @@ fields = [
     "deposit_timestamp"
 ]
 
-# Filter strictly confirmed/enrolled items
+# Filter strictly confirmed/enrolled items and deduplicate by phone/email
 enrolled_items = [item for item in ledger if item.get("status") in ("enrolled", "deposit_paid", "onboarded")]
 
+unique_enrolled = []
+seen_phones = set()
+seen_emails = set()
+for item in enrolled_items:
+    raw_ph = item.get("phone", "")
+    digits = "".join(filter(str.isdigit, str(raw_ph)))[-10:]
+    em = (item.get("userEmail") or "").strip().lower()
+    if digits and digits in seen_phones:
+        continue
+    if em and em in seen_emails:
+        continue
+    if digits:
+        seen_phones.add(digits)
+    if em:
+        seen_emails.add(em)
+    unique_enrolled.append(item)
+
 csv_rows = []
-for idx, item in enumerate(enrolled_items, 1):
+for idx, item in enumerate(unique_enrolled, 1):
     csv_rows.append({
         "serial_no": idx,
         "candidate_name": item.get("userName", ""),
@@ -111,18 +128,27 @@ for idx, item in enumerate(enrolled_items, 1):
 workspace_csv = Path("data/vayanai_enrolled_interns.csv")
 scripts_csv = Path("scripts/enrolled_candidates_confirmation.csv")
 
-with open(workspace_csv, "w", newline="", encoding="utf-8-sig") as f:
-    w = csv.DictWriter(f, fieldnames=fields)
-    w.writeheader()
-    w.writerows(csv_rows)
+try:
+    with open(workspace_csv, "w", newline="", encoding="utf-8-sig") as f:
+        w = csv.DictWriter(f, fieldnames=fields)
+        w.writeheader()
+        w.writerows(csv_rows)
+    print(f"Exported CSV with {len(csv_rows)} rows to:")
+    print(f"  1. {workspace_csv}")
+except PermissionError:
+    print(f"[!] Note: {workspace_csv} is currently open in Excel. Writing updated CSV copy to {scripts_csv} and data/vayanai_enrolled_interns_latest.csv")
+    latest_csv = Path("data/vayanai_enrolled_interns_latest.csv")
+    with open(latest_csv, "w", newline="", encoding="utf-8-sig") as f:
+        w = csv.DictWriter(f, fieldnames=fields)
+        w.writeheader()
+        w.writerows(csv_rows)
+    print(f"  1. {latest_csv}")
 
 with open(scripts_csv, "w", newline="", encoding="utf-8-sig") as f:
     w = csv.DictWriter(f, fieldnames=fields)
     w.writeheader()
     w.writerows(csv_rows)
 
-print(f"Exported CSV with {len(csv_rows)} rows to:")
-print(f"  1. {workspace_csv}")
 print(f"  2. {scripts_csv}")
 
 conn.close()
